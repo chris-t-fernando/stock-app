@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: timescaledb-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: timescaledb
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: timescaledb
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: timescaledb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: timescaledb
+  template:
+    metadata:
+      labels:
+        app: timescaledb
+    spec:
+      containers:
+        - name: timescaledb
+          image: timescale/timescaledb:latest-pg14
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: stockdata
+            - name: POSTGRES_USER
+              value: admin
+            - name: POSTGRES_PASSWORD
+              value: secret
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: timescaledb-storage
+      volumes:
+        - name: timescaledb-storage
+          persistentVolumeClaim:
+            claimName: timescaledb-pvc
