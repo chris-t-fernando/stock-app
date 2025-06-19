@@ -1,12 +1,14 @@
 import boto3
 import os
+import json
 
 DEFAULT_CONFIG = {
-    "PGHOST": "timescaledb",
+    "PGHOST": "k3sn1",
     "PGUSER": "admin",
     "PGPASSWORD": "secret",
     "PGDATABASE": "stockdata",
-    "PGPORT": "30432"
+    "PGPORT": "30432",
+    "symbols": [("AAPL", "1m"), ("GOOGL", "1m"), ("AMZN", "5m"),("AMZN", "1m"),("AMZN", "1h"),("ACN", "5m"),("ACN", "1m"),("ACN", "1h")]
 }
 
 def put_parameters(env="devtest", prefix="/stockapp", region="ap-southeast-2"):
@@ -17,7 +19,7 @@ def put_parameters(env="devtest", prefix="/stockapp", region="ap-southeast-2"):
         print(f"Setting {param_path}...")
         ssm.put_parameter(
             Name=param_path,
-            Value=value,
+            Value=json.dumps(value),
             Type="SecureString" if "PASSWORD" in key else "String",
             Overwrite=True
         )
