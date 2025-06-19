@@ -31,7 +31,7 @@ DB_CONFIG = {
 }
 
 symbols = config["symbols"]
-api_semaphore = Semaphore(1)  # One yf.download at a time to avoid multi-ticker pollution
+api_semaphore = Semaphore(1)  # Single API call at a time for yfinance stability
 
 def get_latest_timestamp(ticker, interval):
     conn = psycopg2.connect(**DB_CONFIG)
@@ -48,7 +48,7 @@ def get_latest_timestamp(ticker, interval):
 def insert_ohlcv_records(ticker, interval, df):
     if df is None or df.empty:
         logger.info(f"⏭ Skipped (no data): {ticker} ({interval})")
-        return False
+        return 0
 
     if isinstance(df.index, pd.MultiIndex):
         df = df.reset_index(level=0)
@@ -102,7 +102,7 @@ def insert_ohlcv_records(ticker, interval, df):
 
     if not rows:
         logger.info(f"⏭ Skipped (no parsable rows): {ticker} ({interval})")
-        return False
+        return 0
 
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
@@ -113,9 +113,10 @@ def insert_ohlcv_records(ticker, interval, df):
     """
     cur.executemany(insert_query, rows)
     conn.commit()
+    rows_inserted = cur.rowcount
     cur.close()
     conn.close()
-    return True
+    return rows_inserted
 
 def fetch_and_store_batch(tickers, interval, start_map):
     overall_start = None
@@ -159,17 +160,18 @@ def fetch_and_store_batch(tickers, interval, start_map):
     return results
 
 def insert_and_publish(ticker, interval, df):
-    inserted = insert_ohlcv_records(ticker, interval, df)
-    if inserted:
+    rows_inserted = insert_ohlcv_records(ticker, interval, df)
+    if rows_inserted > 0:
         bus.publish("stock.updated", "stock.updated", {
             "ticker": ticker,
             "interval": interval,
-            "new_rows": len(df)
+            "new_rows": rows_inserted
         })
-        logger.info(f"✅ Success: {ticker} ({interval})")
+        logger.info(f"✅ Success: {ticker} ({interval}) - Inserted {rows_inserted} new rows")
+    else:
+        logger.info(f"⏭ No new rows to insert for {ticker} ({interval})")
 
 def run():
-    # Group tickers by interval
     interval_map = {}
     for ticker, interval in symbols:
         interval_map.setdefault(interval, []).append(ticker)
