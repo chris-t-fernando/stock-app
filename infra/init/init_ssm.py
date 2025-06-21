@@ -8,7 +8,8 @@ DEFAULT_CONFIG = {
     "PGPASSWORD": "secret",
     "PGDATABASE": "stockdata",
     "PGPORT": "30432",
-    "symbols": [("AAPL", "1m"), ("GOOGL", "1m"), ("AMZN", "5m"),("AMZN", "1m"),("AMZN", "1h"),("ACN", "5m"),("ACN", "1m"),("ACN", "1h")]
+    "symbols": [("AAPL", "1m"), ("GOOGL", "1m"), ("AMZN", "5m"),("AMZN", "1m"),("AMZN", "1h"),("ACN", "5m"),("ACN", "1m"),("ACN", "1h")],
+    "TA": ["macd", "rsi"]
 }
 
 def put_parameters(env="devtest", prefix="/stockapp", region="ap-southeast-2"):
