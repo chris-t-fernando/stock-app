@@ -1,6 +1,7 @@
 import os
 import logging
 import json
+import argparse
 
 from stocklib.messaging import EventBus
 from stocklib.config import load_config
@@ -9,11 +10,16 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 ENV = os.getenv("STOCKAPP_ENV", "devtest")
-TA_NAME = os.getenv("TA_NAME")
+
+parser = argparse.ArgumentParser(description="Technical analysis service")
+parser.add_argument("ta_name", nargs="?", help="technical indicator name")
+args = parser.parse_args()
+
+TA_NAME = args.ta_name or os.getenv("TA_NAME")
 config = load_config(ENV)
 
 if not TA_NAME:
-    raise ValueError("TA_NAME environment variable must be set for ta_service")
+    raise ValueError("TA name must be provided via CLI argument or TA_NAME env var")
 
 symbols = config.get("symbols", [])
 logger.info(f"TA service '{TA_NAME}' starting - subscribing to {len(symbols)} pairs")
