@@ -1,0 +1,4 @@
+image: ta-service:latest
+algorithms: []
+replicas: 1
+env: devtest

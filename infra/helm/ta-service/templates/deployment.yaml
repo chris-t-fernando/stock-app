@@ -1,0 +1,25 @@
+{{- range $alg := .Values.algorithms }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ta-service-{{ $alg }}
+  labels:
+    app: ta-service-{{ $alg }}
+spec:
+  replicas: {{ $.Values.replicas }}
+  selector:
+    matchLabels:
+      app: ta-service-{{ $alg }}
+  template:
+    metadata:
+      labels:
+        app: ta-service-{{ $alg }}
+    spec:
+      containers:
+        - name: ta-service
+          image: {{ $.Values.image }}
+          command: ["python", "app/services/ta_service.py", "-ta_name", "{{ $alg }}"]
+          env:
+            - name: STOCKAPP_ENV
+              value: {{ $.Values.env | quote }}
+{{- end }}
