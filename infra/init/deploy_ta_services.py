@@ -1,7 +1,10 @@
 import os
 from pathlib import Path
 import subprocess
+import sys
 import yaml
+
+sys.path.append(str(Path(__file__).resolve().parents[2] / "app"))
 
 from stocklib.config import load_config
 
