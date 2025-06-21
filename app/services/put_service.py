@@ -149,13 +149,19 @@ def fetch_and_store_batch(tickers, interval, start_map):
         return {}
 
     results = {}
-    for ticker in tickers:
-        if ticker in df.columns.get_level_values(1):
-            df_ticker = df.xs(ticker, axis=1, level=1)
-            results[ticker] = df_ticker
-        else:
-            logger.warning(f"⚠️ Ticker '{ticker}' not found in data columns for batch {tickers} ({interval})")
-            results[ticker] = pd.DataFrame()
+    if df.columns.nlevels == 1:
+        # yfinance omits the ticker level when only one ticker is requested
+        results[tickers[0]] = df
+    else:
+        for ticker in tickers:
+            if ticker in df.columns.get_level_values(1):
+                df_ticker = df.xs(ticker, axis=1, level=1)
+                results[ticker] = df_ticker
+            else:
+                logger.warning(
+                    f"⚠️ Ticker '{ticker}' not found in data columns for batch {tickers} ({interval})"
+                )
+                results[ticker] = pd.DataFrame()
 
     return results
 
