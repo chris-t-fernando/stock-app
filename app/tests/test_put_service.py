@@ -87,3 +87,41 @@ class TestFetchAndStoreBatch(unittest.TestCase):
                 ["AAPL", "MSFT"], "1d", {"AAPL": None, "MSFT": None}
             )
         assert result["MSFT"].empty
+
+
+class TestInsertAndPublish(unittest.TestCase):
+    def test_publish_on_successful_insert(self):
+        ps = load_put_service()
+        df = make_single_level_df()
+        with patch.object(ps, "insert_ohlcv_records", return_value=2) as mock_insert, \
+             patch.object(ps.bus, "publish") as mock_pub:
+            ps.insert_and_publish("AAPL", "1d", df)
+            mock_insert.assert_called_once()
+            mock_pub.assert_called_once()
+            topic, event_type, payload = mock_pub.call_args.args
+            assert topic == "stock.updated"
+            assert event_type == "stock.updated"
+            assert payload == {"ticker": "AAPL", "interval": "1d", "new_rows": 2}
+
+    def test_no_publish_when_no_rows_inserted(self):
+        ps = load_put_service()
+        with patch.object(ps, "insert_ohlcv_records", return_value=0), \
+             patch.object(ps.bus, "publish") as mock_pub:
+            ps.insert_and_publish("AAPL", "1d", make_single_level_df())
+            mock_pub.assert_not_called()
+
+    def test_no_publish_when_insert_fails(self):
+        ps = load_put_service()
+        with patch.object(ps, "insert_ohlcv_records", side_effect=Exception("db error")), \
+             patch.object(ps.bus, "publish") as mock_pub:
+            with self.assertRaises(Exception):
+                ps.insert_and_publish("AAPL", "1d", make_single_level_df())
+            mock_pub.assert_not_called()
+
+    def test_publish_error_propagates(self):
+        ps = load_put_service()
+        with patch.object(ps, "insert_ohlcv_records", return_value=1), \
+             patch.object(ps.bus, "publish", side_effect=Exception("publish fail")) as mock_pub:
+            with self.assertRaises(Exception):
+                ps.insert_and_publish("AAPL", "1d", make_single_level_df())
+            mock_pub.assert_called_once()
