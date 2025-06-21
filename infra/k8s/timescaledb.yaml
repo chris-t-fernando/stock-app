@@ -36,22 +36,21 @@ spec:
       labels:
         app: timescaledb
     spec:
-    #hostNework: true
-    containers:
-      - name: timescaledb
-        image: timescale/timescaledb:latest-pg14
-        ports:
-          - containerPort: 5432
-        env:
-          - name: POSTGRES_DB
-            value: stockdata
-          - name: POSTGRES_USER
-            value: admin
-          - name: POSTGRES_PASSWORD
-            value: secret
-        volumeMounts:
-          - mountPath: /var/lib/postgresql/data
-            name: timescaledb-storage
+      containers:
+        - name: timescaledb
+          image: timescale/timescaledb:latest-pg14
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: stockdata
+            - name: POSTGRES_USER
+              value: admin
+            - name: POSTGRES_PASSWORD
+              value: secret
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: timescaledb-storage
     volumes:
       - name: timescaledb-storage
         persistentVolumeClaim:
