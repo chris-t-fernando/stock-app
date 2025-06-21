@@ -6,13 +6,13 @@ import argparse
 from stocklib.messaging import EventBus
 from stocklib.config import load_config
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 ENV = os.getenv("STOCKAPP_ENV", "devtest")
 
 parser = argparse.ArgumentParser(description="Technical analysis service")
-parser.add_argument("ta_name", nargs="?", help="technical indicator name")
+parser.add_argument("-ta_name", help="technical indicator name")
 args = parser.parse_args()
 
 TA_NAME = args.ta_name or os.getenv("TA_NAME")
@@ -38,7 +38,6 @@ for msg in pubsub.listen():
     bus.publish(
         "ta.updated",
         f"ta.updated.{TA_NAME}",
-        {"ticker": ticker, "interval": interval, "indicator": TA_NAME, "value": 0}
+        {"ticker": ticker, "interval": interval, "indicator": TA_NAME, "value": 0},
     )
     break
-
