@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ta-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ta-service
+  template:
+    metadata:
+      labels:
+        app: ta-service
+    spec:
+      containers:
+        - name: ta-service
+          image: ta-service:latest
+          env:
+            - name: TA_NAME
+              value: macd

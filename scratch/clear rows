@@ -1,0 +1,17 @@
+WITH ranked_rows AS (
+    SELECT
+        ticker,
+        interval,
+        ts,
+        ROW_NUMBER() OVER (
+            PARTITION BY ticker, interval
+            ORDER BY ts DESC
+        ) AS rn
+    FROM stock_ohlcv
+)
+DELETE FROM stock_ohlcv s
+USING ranked_rows r
+WHERE s.ticker = r.ticker
+  AND s.interval = r.interval
+  AND s.ts = r.ts
+  AND r.rn <= 10;
