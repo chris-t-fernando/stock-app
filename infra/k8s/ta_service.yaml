@@ -18,3 +18,5 @@ spec:
           env:
             - name: TA_NAME
               value: macd
+            - name: TA_SERVICE_IMAGE
+              value: ta-service:latest

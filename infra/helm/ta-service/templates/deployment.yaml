@@ -22,4 +22,6 @@ spec:
           env:
             - name: STOCKAPP_ENV
               value: {{ $.Values.env | quote }}
+            - name: TA_SERVICE_IMAGE
+              value: {{ $.Values.image | quote }}
 {{- end }}

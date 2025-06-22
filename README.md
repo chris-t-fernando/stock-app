@@ -3,6 +3,8 @@
 This repository contains infrastructure and application code for the stock app.
 
 Each service lives in the `services` directory with its own `requirements.txt` and `Dockerfile`.
+The configuration stored in AWS SSM now includes a `container_registry` key which
+points to the local registry used by k3s (`k3sn1:32000`).
 ## Requirements
 
 - Python 3.10+

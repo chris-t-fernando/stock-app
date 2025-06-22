@@ -9,7 +9,9 @@ DEFAULT_CONFIG = {
     "PGDATABASE": "stockdata",
     "PGPORT": "30432",
     "symbols": [("AAPL", "1m"), ("GOOGL", "1m"), ("AMZN", "5m"),("AMZN", "1m"),("AMZN", "1h"),("ACN", "5m"),("ACN", "1m"),("ACN", "1h")],
-    "TA": ["macd", "rsi"]
+    "TA": ["macd", "rsi"],
+    # Registry that hosts our container images for k3s
+    "container_registry": "k3sn1:32000"
 }
 
 def put_parameters(env="devtest", prefix="/stockapp", region="ap-southeast-2"):

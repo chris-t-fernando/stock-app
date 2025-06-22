@@ -14,8 +14,9 @@ from stocklib.config import load_config
 
 def main():
     env = os.getenv("STOCKAPP_ENV", "devtest")
-    image = os.getenv("TA_SERVICE_IMAGE", "ta-service:latest")
     config = load_config(env)
+    registry = config.get("container_registry", "")
+    image = os.getenv("TA_SERVICE_IMAGE", f"{registry}/ta-service:latest" if registry else "ta-service:latest")
     algos = config.get("TA", [])
 
     values = {
