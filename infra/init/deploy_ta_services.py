@@ -7,7 +7,7 @@ import yaml
 # TODO: stocklib will become its own Python package. When that happens,
 #       remove the sys.path hack below and declare stocklib as a dependency
 #       in requirements.txt instead.
-sys.path.append(str(Path(__file__).resolve().parents[2] / "app"))
+sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 from stocklib.config import load_config
 

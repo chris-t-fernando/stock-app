@@ -2,6 +2,7 @@
 
 This repository contains infrastructure and application code for the stock app.
 
+Each service lives in the `services` directory with its own `requirements.txt` and `Dockerfile`.
 ## Requirements
 
 - Python 3.10+
