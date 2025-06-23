@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 ENV = os.getenv("STOCKAPP_ENV", "devtest")
 config = load_config(ENV)
 
-bus = EventBus()
+bus = EventBus(config.get("redis_url"))
 
 for msg in bus.subscribe("stock.updated"):
     if msg["type"] != "message":

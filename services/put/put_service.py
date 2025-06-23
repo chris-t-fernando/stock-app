@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 # Silence yfinance internal logging
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
-bus = EventBus()
-
 ENV = os.getenv("STOCKAPP_ENV", "devtest")
 config = load_config(ENV)
+
+bus = EventBus(config.get("redis_url"))
 
 DB_CONFIG = {
     "dbname": config["PGDATABASE"],

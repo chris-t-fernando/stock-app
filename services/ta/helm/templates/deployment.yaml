@@ -24,4 +24,14 @@ spec:
               value: {{ $.Values.env | quote }}
             - name: TA_SERVICE_IMAGE
               value: {{ $.Values.image | quote }}
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: aws_access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: aws_secret_access_key
 {{- end }}

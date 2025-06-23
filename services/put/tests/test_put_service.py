@@ -21,6 +21,7 @@ def load_put_service():
             "PGDATABASE": "",
             "PGPORT": "5432",
             "symbols": [],
+            "redis_url": "redis://localhost:6379",
         },
     ):
         if "services.put.put_service" in sys.modules:

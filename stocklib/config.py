@@ -13,6 +13,7 @@ def load_config(env="devtest", prefix="/stockapp"):
         "symbols",
         "TA",
         "container_registry",
+        "redis_url",
     ]
     result = {}
     for key in keys:

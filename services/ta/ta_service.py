@@ -2,7 +2,7 @@ import os
 import logging
 import json
 import argparse
-from datetime import datetime
+bus = EventBus(config.get("redis_url"))
 
 import pandas as pd
 import psycopg2
