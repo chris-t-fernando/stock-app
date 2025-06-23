@@ -3,8 +3,7 @@
 This repository contains infrastructure and application code for the stock app.
 
 Each service lives in the `services` directory with its own `requirements.txt` and `Dockerfile`.
-The configuration stored in AWS SSM now includes a `container_registry` key which
-points to the local registry used by k3s (`k3sn1:32000`).
+The configuration stored in AWS SSM now includes a `container_registry` key which points to the local registry used by k3s (`k3sn1:32000`).
 ## Requirements
 
 - Python 3.10+
@@ -13,12 +12,13 @@ points to the local registry used by k3s (`k3sn1:32000`).
 
 ## Deploying TA Services
 
-Use `infra/init/deploy_ta_services.py` to deploy technical analysis services.
+Use `services/ta/init/deploy_ta_services.py` to deploy technical analysis services.
 The script reads configuration from AWS SSM, writes a `values.yaml` file for the
 Helm chart and then runs `helm upgrade --install`.
+The Helm chart is located alongside the service code under `services/ta/helm`.
 
 ```bash
-python infra/init/deploy_ta_services.py
+python services/ta/init/deploy_ta_services.py
 ```
 
 Ensure Helm and `kubectl` are installed and your Kubernetes credentials are

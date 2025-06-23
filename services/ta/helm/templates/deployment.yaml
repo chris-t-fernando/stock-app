@@ -18,7 +18,7 @@ spec:
       containers:
         - name: ta-service
           image: {{ $.Values.image }}
-          command: ["python", "app/services/ta_service.py", "-ta_name", "{{ $alg }}"]
+          command: ["python", "ta_service.py", "-ta_name", "{{ $alg }}"]
           env:
             - name: STOCKAPP_ENV
               value: {{ $.Values.env | quote }}

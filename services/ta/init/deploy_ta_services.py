@@ -30,7 +30,7 @@ def main():
     with values_path.open("w") as f:
         yaml.safe_dump(values, f)
 
-    chart_dir = Path(__file__).resolve().parents[1] / "helm" / "ta-service"
+    chart_dir = Path(__file__).resolve().parents[1] / "helm"
     subprocess.run(
         ["helm", "upgrade", "--install", "ta-services", str(chart_dir), "-f", str(values_path)],
         check=True,
