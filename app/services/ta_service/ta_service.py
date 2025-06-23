@@ -2,6 +2,8 @@ import os
 import logging
 import json
 import argparse
+from datetime import datetime
+
 import pandas as pd
 import psycopg2
 
@@ -32,10 +34,10 @@ DB_CONFIG = {
     "host": config["PGHOST"],
     "port": int(config["PGPORT"]),
 }
-bus = EventBus(config.get("redis_url"))
+
+bus = EventBus()
 
 LOOKBACK_ROWS = 200
-
 
 def get_latest_macd_ts(ticker: str, interval: str):
     conn = psycopg2.connect(**DB_CONFIG)
@@ -49,10 +51,7 @@ def get_latest_macd_ts(ticker: str, interval: str):
     conn.close()
     return result
 
-
-def fetch_recent_closes(
-    ticker: str, interval: str, limit: int = LOOKBACK_ROWS
-) -> pd.DataFrame:
+def fetch_recent_closes(ticker: str, interval: str, limit: int = LOOKBACK_ROWS) -> pd.DataFrame:
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
     cur.execute(
@@ -68,13 +67,8 @@ def fetch_recent_closes(
     conn.close()
     if not rows:
         return pd.DataFrame(columns=["ts", "close"])
-    df = (
-        pd.DataFrame(rows, columns=["ts", "close"])
-        .sort_values("ts")
-        .reset_index(drop=True)
-    )
+    df = pd.DataFrame(rows, columns=["ts", "close"]).sort_values("ts").reset_index(drop=True)
     return df
-
 
 def calculate_macd(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
@@ -85,15 +79,13 @@ def calculate_macd(df: pd.DataFrame) -> pd.DataFrame:
     macd, signal, hist = talib.MACD(df["close"].astype(float).values)
     diff = macd - signal
 
-    res = pd.DataFrame(
-        {
-            "ts": df["ts"],
-            "macd": macd,
-            "macd_signal": signal,
-            "macd_hist": hist,
-            "macd_diff": diff,
-        }
-    )
+    res = pd.DataFrame({
+        "ts": df["ts"],
+        "macd": macd,
+        "macd_signal": signal,
+        "macd_hist": hist,
+        "macd_diff": diff,
+    })
 
     res["macd_crossover"] = False
     res["macd_crossover_type"] = None
@@ -106,7 +98,6 @@ def calculate_macd(df: pd.DataFrame) -> pd.DataFrame:
     res.loc[bearish, "macd_crossover_type"] = "bearish"
 
     return res
-
 
 def insert_macd_records(ticker: str, interval: str, df: pd.DataFrame) -> int:
     if df is None or df.empty:
@@ -150,7 +141,6 @@ def insert_macd_records(ticker: str, interval: str, df: pd.DataFrame) -> int:
     conn.close()
     return rows_inserted
 
-
 def process_ticker(ticker: str, interval: str) -> int:
     last_ts = get_latest_macd_ts(ticker, interval)
     price_df = fetch_recent_closes(ticker, interval)
@@ -164,7 +154,6 @@ def process_ticker(ticker: str, interval: str) -> int:
     rows = insert_macd_records(ticker, interval, macd_df)
     logger.info(f"✅ MACD stored for {ticker} ({interval}) - {rows} new rows")
     return rows
-
 
 def run():
     logger.info(f"TA service '{TA_NAME}' starting")
@@ -188,7 +177,6 @@ def run():
                     "new_rows": new_rows,
                 },
             )
-
 
 if __name__ == "__main__":
     run()

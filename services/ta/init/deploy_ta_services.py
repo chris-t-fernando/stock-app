@@ -7,7 +7,7 @@ import yaml
 # TODO: stocklib will become its own Python package. When that happens,
 #       remove the sys.path hack below and declare stocklib as a dependency
 #       in requirements.txt instead.
-sys.path.append(str(Path(__file__).resolve().parents[2]))
+sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 from stocklib.config import load_config
 
@@ -16,7 +16,10 @@ def main():
     env = os.getenv("STOCKAPP_ENV", "devtest")
     config = load_config(env)
     registry = config.get("container_registry", "")
-    image = os.getenv("TA_SERVICE_IMAGE", f"{registry}/ta-service:latest" if registry else "ta-service:latest")
+    image = os.getenv(
+        "TA_SERVICE_IMAGE",
+        f"{registry}/ta-service:latest" if registry else "ta-service:latest",
+    )
     algos = config.get("TA", [])
 
     values = {
@@ -32,7 +35,15 @@ def main():
 
     chart_dir = Path(__file__).resolve().parents[1] / "helm"
     subprocess.run(
-        ["helm", "upgrade", "--install", "ta-services", str(chart_dir), "-f", str(values_path)],
+        [
+            "helm",
+            "upgrade",
+            "--install",
+            "ta-services",
+            str(chart_dir),
+            "-f",
+            str(values_path),
+        ],
         check=True,
     )
 

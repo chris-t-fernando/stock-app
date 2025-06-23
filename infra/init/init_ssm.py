@@ -8,13 +8,23 @@ DEFAULT_CONFIG = {
     "PGPASSWORD": "secret",
     "PGDATABASE": "stockdata",
     "PGPORT": "30432",
-    "symbols": [("AAPL", "1m"), ("GOOGL", "1m"), ("AMZN", "5m"),("AMZN", "1m"),("AMZN", "1h"),("ACN", "5m"),("ACN", "1m"),("ACN", "1h")],
+    "symbols": [
+        ("AAPL", "1m"),
+        ("GOOGL", "1m"),
+        ("AMZN", "5m"),
+        ("AMZN", "1m"),
+        ("AMZN", "1h"),
+        ("ACN", "5m"),
+        ("ACN", "1m"),
+        ("ACN", "1h"),
+    ],
     "TA": ["macd", "rsi"],
     # Registry that hosts our container images for k3s
     "container_registry": "k3sn1:32000",
     # Redis connection URL used by services
-    "redis_url": "redis://k3sn1:6379"
+    "redis_url": "redis://k3sn1:30379",
 }
+
 
 def put_parameters(env="devtest", prefix="/stockapp", region="ap-southeast-2"):
     ssm = boto3.client("ssm", region_name=region)
@@ -26,9 +36,10 @@ def put_parameters(env="devtest", prefix="/stockapp", region="ap-southeast-2"):
             Name=param_path,
             Value=json.dumps(value),
             Type="SecureString" if "PASSWORD" in key else "String",
-            Overwrite=True
+            Overwrite=True,
         )
     print("✅ SSM parameters bootstrapped.")
+
 
 if __name__ == "__main__":
     env = os.getenv("STOCKAPP_ENV", "devtest")
