@@ -23,3 +23,15 @@ python services/ta/init/deploy_ta_services.py
 
 Ensure Helm and `kubectl` are installed and your Kubernetes credentials are
 available before running the script.
+
+## Building Service Images
+
+Build each service image from the repository root so that the Docker build
+context includes the shared `stocklib` package. For example, to build the TA
+service image that will be pushed to the local registry:
+
+```bash
+docker build -t k3sn1:32000/ta-service:latest -f services/ta/Dockerfile .
+```
+
+Adjust the registry prefix as needed for your environment.
