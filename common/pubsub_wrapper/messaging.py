@@ -2,7 +2,9 @@ import json
 import redis  # Swap later with Kafka backend (e.g., aiokafka)
 
 
-class EventBus:
+class PubSubClient:
+    """Simple Redis-based pub/sub client."""
+
     def __init__(self, redis_url="redis://localhost:6379"):
         self.redis = redis.Redis.from_url(redis_url)
 

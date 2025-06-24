@@ -5,18 +5,19 @@ import numpy as np
 
 def load_ta_service():
     with patch(
-        "stocklib.config.load_config",
+        "pubsub_wrapper.load_config",
         return_value={
             "PGHOST": "",
             "PGUSER": "",
             "PGPASSWORD": "",
             "PGDATABASE": "",
             "PGPORT": "5432",
+            "redis_url": "redis://localhost:6379",
         },
     ):
-        if "services.ta_service" in sys.modules:
-            return importlib.reload(sys.modules["services.ta_service"])
-        return importlib.import_module("services.ta_service")
+        if "services.ta.ta_service" in sys.modules:
+            return importlib.reload(sys.modules["services.ta.ta_service"])
+        return importlib.import_module("services.ta.ta_service")
 
 import sys
 import importlib

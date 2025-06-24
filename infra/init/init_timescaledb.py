@@ -3,7 +3,7 @@ import boto3
 import os
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from stocklib.config import load_config
+from pubsub_wrapper import load_config
 
 ENV = os.getenv("STOCKAPP_ENV", "devtest")
 config = load_config(ENV)

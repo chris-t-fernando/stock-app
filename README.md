@@ -11,6 +11,14 @@ The configuration stored in AWS SSM now includes a `container_registry` key whic
 - `kubectl` configured to access your cluster via `~/.kube/config`
 - A Kubernetes secret named `aws-credentials` containing your AWS access key and secret
 
+## Local Development
+
+Install the shared pubsub wrapper package in editable mode:
+
+```bash
+pip install -e ./common/
+```
+
 ## Deploying TA Services
 
 Use `services/ta/init/deploy_ta_services.py` to deploy technical analysis services.
@@ -39,7 +47,7 @@ kubectl create secret generic aws-credentials \
 ## Building Service Images
 
 Build each service image from the repository root so that the Docker build
-context includes the shared `stocklib` package. When building on ARM hardware,
+context includes the shared `pubsub_wrapper` package. When building on ARM hardware,
 use `buildx` to cross build for the x86 architecture and push the image to your
 local registry. For example, to build and publish the TA service image:
 
