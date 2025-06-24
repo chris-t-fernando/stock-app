@@ -1,0 +1,5 @@
+redis
+yfinance
+boto3
+psycopg2-binary
+pandas

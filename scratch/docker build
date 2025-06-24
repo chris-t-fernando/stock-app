@@ -1,0 +1,3 @@
+docker buildx build --platform linux/amd64 \
+  -t k3sn1:32000/ta-service:latest \
+  -f services/ta/Dockerfile . --push && kubectl rollout restart deployment/ta-service-macd && kubectl get pods

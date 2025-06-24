@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pandas as pd
 
-sys.path.append(str(Path(__file__).resolve().parents[1]))
+sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 
 def load_put_service():
@@ -21,12 +21,13 @@ def load_put_service():
             "PGDATABASE": "",
             "PGPORT": "5432",
             "symbols": [],
+            "redis_url": "redis://localhost:6379",
         },
     ):
-        if "services.put_service" in sys.modules:
-            module = sys.modules["services.put_service"]
+        if "services.put.put_service" in sys.modules:
+            module = sys.modules["services.put.put_service"]
             return importlib.reload(module)
-        return importlib.import_module("services.put_service")
+        return importlib.import_module("services.put.put_service")
 
 
 def make_multi_index_df():
