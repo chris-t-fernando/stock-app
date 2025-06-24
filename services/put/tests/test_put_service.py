@@ -1,19 +1,16 @@
-import sys
-from pathlib import Path
 import importlib
+import sys
 from datetime import datetime
 import unittest
 from unittest.mock import patch
 
 import pandas as pd
 
-sys.path.append(str(Path(__file__).resolve().parents[1]))
-
 
 def load_put_service():
     """Import put_service with mocked config to avoid AWS calls."""
     with patch(
-        "stocklib.config.load_config",
+        "pubsub_wrapper.load_config",
         return_value={
             "PGHOST": "",
             "PGUSER": "",
@@ -21,12 +18,13 @@ def load_put_service():
             "PGDATABASE": "",
             "PGPORT": "5432",
             "symbols": [],
+            "redis_url": "redis://localhost:6379",
         },
     ):
-        if "services.put_service" in sys.modules:
-            module = sys.modules["services.put_service"]
+        if "services.put.put_service" in sys.modules:
+            module = sys.modules["services.put.put_service"]
             return importlib.reload(module)
-        return importlib.import_module("services.put_service")
+        return importlib.import_module("services.put.put_service")
 
 
 def make_multi_index_df():

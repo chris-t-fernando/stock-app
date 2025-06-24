@@ -1,8 +1,7 @@
 # app/services/put_service.py
 import os
 import logging
-from stocklib.messaging import EventBus
-from stocklib.config import load_config
+from pubsub_wrapper import PubSubClient, load_config
 import yfinance as yf
 import psycopg2
 import pandas as pd
@@ -11,39 +10,41 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Semaphore, Lock
 from collections import deque
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 # Silence yfinance internal logging
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
-bus = EventBus()
-
 ENV = os.getenv("STOCKAPP_ENV", "devtest")
 config = load_config(ENV)
+
+bus = PubSubClient(config.get("redis_url"))
 
 DB_CONFIG = {
     "dbname": config["PGDATABASE"],
     "user": config["PGUSER"],
     "password": config["PGPASSWORD"],
     "host": config["PGHOST"],
-    "port": int(config["PGPORT"])
+    "port": int(config["PGPORT"]),
 }
 
 symbols = config["symbols"]
 api_semaphore = Semaphore(1)  # Single API call at a time for yfinance stability
+
 
 def get_latest_timestamp(ticker, interval):
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
     cur.execute(
         "SELECT MAX(ts) FROM stock_ohlcv WHERE ticker = %s AND interval = %s",
-        (ticker, interval)
+        (ticker, interval),
     )
     result = cur.fetchone()[0]
     cur.close()
     conn.close()
     return result
+
 
 def insert_ohlcv_records(ticker, interval, df):
     if df is None or df.empty:
@@ -57,22 +58,25 @@ def insert_ohlcv_records(ticker, interval, df):
 
     def extract_scalar_timestamp(row):
         for key in row.keys():
-            if (isinstance(key, tuple) and key[0] in ('Datetime', 'Date', 'index')) or \
-               (isinstance(key, str) and key in ('Datetime', 'Date', 'index')):
+            if (isinstance(key, tuple) and key[0] in ("Datetime", "Date", "index")) or (
+                isinstance(key, str) and key in ("Datetime", "Date", "index")
+            ):
                 ts = row[key]
                 if isinstance(ts, (pd.Series, pd.DataFrame)):
                     logger.debug(f"Row[{key}] is not scalar: {ts}")
                     continue
                 if pd.notna(ts):
                     ts = pd.to_datetime(ts)
-                    return ts.to_pydatetime() if hasattr(ts, 'to_pydatetime') else ts
-        logger.warning(f"⚠️ No valid timestamp in row: {row.to_dict()} | keys: {list(row.keys())}")
+                    return ts.to_pydatetime() if hasattr(ts, "to_pydatetime") else ts
+        logger.warning(
+            f"⚠️ No valid timestamp in row: {row.to_dict()} | keys: {list(row.keys())}"
+        )
         raise ValueError("No valid scalar timestamp field found in row")
 
     def extract_field(row, field_name):
         try:
             if isinstance(row.index, pd.MultiIndex):
-                return row[(field_name, '')] if (field_name, '') in row else None
+                return row[(field_name, "")] if (field_name, "") in row else None
             return row[field_name]
         except Exception:
             return None
@@ -81,22 +85,28 @@ def insert_ohlcv_records(ticker, interval, df):
     for _, row in df.iterrows():
         try:
             ts = extract_scalar_timestamp(row)
-            open_ = extract_field(row, 'Open')
-            high = extract_field(row, 'High')
-            low = extract_field(row, 'Low')
-            close = extract_field(row, 'Close')
-            volume_val = extract_field(row, 'Volume')
+            open_ = extract_field(row, "Open")
+            high = extract_field(row, "High")
+            low = extract_field(row, "Low")
+            close = extract_field(row, "Close")
+            volume_val = extract_field(row, "Volume")
 
-            rows.append((
-                ticker,
-                interval,
-                ts,
-                float(open_) if pd.notna(open_) else None,
-                float(high) if pd.notna(high) else None,
-                float(low) if pd.notna(low) else None,
-                float(close) if pd.notna(close) else None,
-                int(volume_val) if pd.notna(volume_val) and not pd.isnull(volume_val) else None
-            ))
+            rows.append(
+                (
+                    ticker,
+                    interval,
+                    ts,
+                    float(open_) if pd.notna(open_) else None,
+                    float(high) if pd.notna(high) else None,
+                    float(low) if pd.notna(low) else None,
+                    float(close) if pd.notna(close) else None,
+                    (
+                        int(volume_val)
+                        if pd.notna(volume_val) and not pd.isnull(volume_val)
+                        else None
+                    ),
+                )
+            )
         except Exception as e:
             logger.warning(f"⚠️ Skipping row for {ticker} ({interval}): {e}")
 
@@ -118,6 +128,7 @@ def insert_ohlcv_records(ticker, interval, df):
     conn.close()
     return rows_inserted
 
+
 def fetch_and_store_batch(tickers, interval, start_map):
     overall_start = None
     for t in tickers:
@@ -138,10 +149,12 @@ def fetch_and_store_batch(tickers, interval, start_map):
                 start=overall_start,
                 interval=interval,
                 auto_adjust=False,
-                progress=False
+                progress=False,
             )
     except Exception as e:
-        logger.warning(f"⚠️ yfinance download issue for batch {tickers} ({interval}): {e}")
+        logger.warning(
+            f"⚠️ yfinance download issue for batch {tickers} ({interval}): {e}"
+        )
         return {}
 
     if df is None or df.empty:
@@ -165,17 +178,21 @@ def fetch_and_store_batch(tickers, interval, start_map):
 
     return results
 
+
 def insert_and_publish(ticker, interval, df):
     rows_inserted = insert_ohlcv_records(ticker, interval, df)
     if rows_inserted > 0:
-        bus.publish("stock.updated", "stock.updated", {
-            "ticker": ticker,
-            "interval": interval,
-            "new_rows": rows_inserted
-        })
-        logger.info(f"✅ Success: {ticker} ({interval}) - Inserted {rows_inserted} new rows")
+        bus.publish(
+            "stock.updated",
+            "stock.updated",
+            {"ticker": ticker, "interval": interval, "new_rows": rows_inserted},
+        )
+        logger.info(
+            f"✅ Success: {ticker} ({interval}) - Inserted {rows_inserted} new rows"
+        )
     else:
         logger.info(f"⏭ No new rows to insert for {ticker} ({interval})")
+
 
 def run():
     interval_map = {}
@@ -202,6 +219,7 @@ def run():
                     future.result()
                 except Exception as e:
                     logger.error(f"❌ Error during insert for ticker batch: {e}")
+
 
 if __name__ == "__main__":
     run()

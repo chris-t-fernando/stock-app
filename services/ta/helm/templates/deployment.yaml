@@ -1,25 +1,29 @@
+{{- range $alg := .Values.algorithms }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ta-service
+  name: ta-service-{{ $alg }}
+  labels:
+    app: ta-service-{{ $alg }}
 spec:
-  replicas: 1
+  replicas: {{ $.Values.replicas }}
   selector:
     matchLabels:
-      app: ta-service
+      app: ta-service-{{ $alg }}
   template:
     metadata:
       labels:
-        app: ta-service
+        app: ta-service-{{ $alg }}
     spec:
       containers:
         - name: ta-service
-          image: ta-service:latest
+          image: {{ $.Values.image }}
+          command: ["python", "ta_service.py", "-ta_name", "{{ $alg }}"]
           env:
-            - name: TA_NAME
-              value: macd
+            - name: STOCKAPP_ENV
+              value: {{ $.Values.env | quote }}
             - name: TA_SERVICE_IMAGE
-              value: ta-service:latest
+              value: {{ $.Values.image | quote }}
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
@@ -30,3 +34,5 @@ spec:
                 secretKeyRef:
                   name: aws-credentials
                   key: aws_secret_access_key
+---
+{{- end }}

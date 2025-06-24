@@ -15,14 +15,14 @@
             "name": "dbg: put_service",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/app/services/put_service.py",
+            "program": "${workspaceFolder}/services/put/put_service.py",
             "console": "integratedTerminal"
         },
         {
             "name": "dbg: ta_service",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/app/services/ta_service.py",
+            "program": "${workspaceFolder}/services/ta/ta_service.py",
             "console": "integratedTerminal",
             "args": [
                 "-ta_name",

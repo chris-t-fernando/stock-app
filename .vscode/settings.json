@@ -1,5 +1,7 @@
 {
-    "python.envFile": "${workspaceFolder}/.env",
+    "python.analysis.extraPaths": [
+        "./common"
+    ],
     "python.testing.unittestArgs": [
         "-v",
         "-s",

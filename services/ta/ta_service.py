@@ -2,18 +2,14 @@ import os
 import logging
 import json
 import argparse
-from datetime import datetime
-
 import pandas as pd
 import psycopg2
-
 try:
     import talib
 except Exception:  # pragma: no cover - talib may not be installed in CI
     talib = None
 
-from stocklib.messaging import EventBus
-from stocklib.config import load_config
+from pubsub_wrapper import PubSubClient, load_config
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -34,10 +30,39 @@ DB_CONFIG = {
     "host": config["PGHOST"],
     "port": int(config["PGPORT"]),
 }
-
-bus = EventBus()
+bus = PubSubClient(config.get("redis_url"))
 
 LOOKBACK_ROWS = 200
+
+def get_latest_ohlcv_ts(ticker: str, interval: str):
+    """Return the most recent timestamp from the price table."""
+    conn = psycopg2.connect(**DB_CONFIG)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT MAX(ts) FROM stock_ohlcv WHERE ticker = %s AND interval = %s",
+        (ticker, interval),
+    )
+    result = cur.fetchone()[0]
+    cur.close()
+    conn.close()
+    return result
+
+def fetch_all_closes(ticker: str, interval: str) -> pd.DataFrame:
+    """Fetch all closing prices for a ticker/interval ordered by timestamp."""
+    conn = psycopg2.connect(**DB_CONFIG)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT ts, close FROM stock_ohlcv WHERE ticker = %s AND interval = %s ORDER BY ts",
+        (ticker, interval),
+    )
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    if not rows:
+        return pd.DataFrame(columns=["ts", "close"])
+    df = pd.DataFrame(rows, columns=["ts", "close"])
+    return df
+
 
 def get_latest_macd_ts(ticker: str, interval: str):
     conn = psycopg2.connect(**DB_CONFIG)
@@ -51,7 +76,10 @@ def get_latest_macd_ts(ticker: str, interval: str):
     conn.close()
     return result
 
-def fetch_recent_closes(ticker: str, interval: str, limit: int = LOOKBACK_ROWS) -> pd.DataFrame:
+
+def fetch_recent_closes(
+    ticker: str, interval: str, limit: int = LOOKBACK_ROWS
+) -> pd.DataFrame:
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
     cur.execute(
@@ -67,8 +95,13 @@ def fetch_recent_closes(ticker: str, interval: str, limit: int = LOOKBACK_ROWS) 
     conn.close()
     if not rows:
         return pd.DataFrame(columns=["ts", "close"])
-    df = pd.DataFrame(rows, columns=["ts", "close"]).sort_values("ts").reset_index(drop=True)
+    df = (
+        pd.DataFrame(rows, columns=["ts", "close"])
+        .sort_values("ts")
+        .reset_index(drop=True)
+    )
     return df
+
 
 def calculate_macd(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
@@ -79,13 +112,15 @@ def calculate_macd(df: pd.DataFrame) -> pd.DataFrame:
     macd, signal, hist = talib.MACD(df["close"].astype(float).values)
     diff = macd - signal
 
-    res = pd.DataFrame({
-        "ts": df["ts"],
-        "macd": macd,
-        "macd_signal": signal,
-        "macd_hist": hist,
-        "macd_diff": diff,
-    })
+    res = pd.DataFrame(
+        {
+            "ts": df["ts"],
+            "macd": macd,
+            "macd_signal": signal,
+            "macd_hist": hist,
+            "macd_diff": diff,
+        }
+    )
 
     res["macd_crossover"] = False
     res["macd_crossover_type"] = None
@@ -98,6 +133,7 @@ def calculate_macd(df: pd.DataFrame) -> pd.DataFrame:
     res.loc[bearish, "macd_crossover_type"] = "bearish"
 
     return res
+
 
 def insert_macd_records(ticker: str, interval: str, df: pd.DataFrame) -> int:
     if df is None or df.empty:
@@ -141,6 +177,7 @@ def insert_macd_records(ticker: str, interval: str, df: pd.DataFrame) -> int:
     conn.close()
     return rows_inserted
 
+
 def process_ticker(ticker: str, interval: str) -> int:
     last_ts = get_latest_macd_ts(ticker, interval)
     price_df = fetch_recent_closes(ticker, interval)
@@ -155,10 +192,53 @@ def process_ticker(ticker: str, interval: str) -> int:
     logger.info(f"✅ MACD stored for {ticker} ({interval}) - {rows} new rows")
     return rows
 
+
+def process_backlog():
+    """Process any OHLCV rows not yet analysed for all configured tickers."""
+    symbols = config.get("symbols", [])
+    for ticker, interval in symbols:
+        latest_ta_ts = get_latest_macd_ts(ticker, interval)
+        latest_price_ts = get_latest_ohlcv_ts(ticker, interval)
+
+        if latest_price_ts is None:
+            continue
+        if latest_ta_ts and latest_ta_ts >= latest_price_ts:
+            continue
+
+        price_df = fetch_all_closes(ticker, interval)
+        if price_df.empty:
+            continue
+
+        macd_df = calculate_macd(price_df)
+        macd_df = macd_df.iloc[LOOKBACK_ROWS:]
+
+        if latest_ta_ts:
+            macd_df = macd_df[macd_df["ts"] > latest_ta_ts]
+
+        rows = insert_macd_records(ticker, interval, macd_df)
+        if rows > 0:
+            logger.info(
+                f"✅ Processed backlog for {ticker} ({interval}) - {rows} rows"
+            )
+            bus.publish(
+                "ta.updated",
+                f"ta.updated.{TA_NAME}",
+                {
+                    "ticker": ticker,
+                    "interval": interval,
+                    "indicator": TA_NAME,
+                    "new_rows": rows,
+                },
+            )
+
+
 def run():
     logger.info(f"TA service '{TA_NAME}' starting")
+    process_backlog()
     pubsub = bus.subscribe("stock.updated")
+    logger.info(f"Subscribed to 'stock.updated' on {config.get('redis_url')}")
     for msg in pubsub.listen():
+        logger.info(f"Received message: {msg}")
         if msg["type"] != "message":
             continue
         event = json.loads(msg["data"])
@@ -177,6 +257,7 @@ def run():
                     "new_rows": new_rows,
                 },
             )
+
 
 if __name__ == "__main__":
     run()
