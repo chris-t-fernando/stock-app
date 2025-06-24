@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pubsub_wrapper"
+version = "0.1.0"
+description = "Redis pub/sub wrapper"
+authors = [{name="Stock App"}]
+dependencies = ["redis", "boto3"]

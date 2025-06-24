@@ -1,12 +1,7 @@
 # app/services/put_service.py
-from pathlib import Path
-import sys
-
-sys.path.append(str(Path(__file__).resolve().parents[2]))
 import os
 import logging
-from stocklib.messaging import EventBus
-from stocklib.config import load_config
+from pubsub_wrapper import PubSubClient, load_config
 import yfinance as yf
 import psycopg2
 import pandas as pd
@@ -24,7 +19,7 @@ logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 ENV = os.getenv("STOCKAPP_ENV", "devtest")
 config = load_config(ENV)
 
-bus = EventBus(config.get("redis_url"))
+bus = PubSubClient(config.get("redis_url"))
 
 DB_CONFIG = {
     "dbname": config["PGDATABASE"],

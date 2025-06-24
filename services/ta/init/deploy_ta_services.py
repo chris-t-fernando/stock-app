@@ -1,15 +1,9 @@
 import os
 from pathlib import Path
 import subprocess
-import sys
 import yaml
 
-# TODO: stocklib will become its own Python package. When that happens,
-#       remove the sys.path hack below and declare stocklib as a dependency
-#       in requirements.txt instead.
-sys.path.append(str(Path(__file__).resolve().parents[3]))
-
-from stocklib.config import load_config
+from pubsub_wrapper import load_config
 
 
 def main():

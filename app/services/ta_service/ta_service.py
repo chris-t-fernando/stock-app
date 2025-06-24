@@ -12,8 +12,7 @@ try:
 except Exception:  # pragma: no cover - talib may not be installed in CI
     talib = None
 
-from stocklib.messaging import EventBus
-from stocklib.config import load_config
+from pubsub_wrapper import PubSubClient, load_config
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -35,7 +34,7 @@ DB_CONFIG = {
     "port": int(config["PGPORT"]),
 }
 
-bus = EventBus()
+bus = PubSubClient()
 
 LOOKBACK_ROWS = 200
 

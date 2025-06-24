@@ -19,6 +19,6 @@ COPY services/ta/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY services/ta/ta_service.py ./
-COPY stocklib ./stocklib
+COPY common/pubsub_wrapper/ pubsub_wrapper/
 
 CMD ["python", "ta_service.py"]

@@ -1,7 +1,3 @@
-# from pathlib import Path
-# import sys
-
-# sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 import os
 import logging
@@ -15,8 +11,7 @@ try:
 except Exception:  # pragma: no cover - talib may not be installed in CI
     talib = None
 
-from stocklib.messaging import EventBus
-from stocklib.config import load_config
+from pubsub_wrapper import PubSubClient, load_config
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -37,7 +32,7 @@ DB_CONFIG = {
     "host": config["PGHOST"],
     "port": int(config["PGPORT"]),
 }
-bus = EventBus(config.get("redis_url"))
+bus = PubSubClient(config.get("redis_url"))
 
 LOOKBACK_ROWS = 200
 
