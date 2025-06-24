@@ -1,15 +1,10 @@
-
 import os
 import logging
 import json
 import argparse
 import pandas as pd
 import psycopg2
-
-try:
-    import talib
-except Exception:  # pragma: no cover - talib may not be installed in CI
-    talib = None
+import talib
 
 from pubsub_wrapper import PubSubClient, load_config
 
