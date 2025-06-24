@@ -1,7 +1,7 @@
-# from pathlib import Path
-# import sys
+from pubsub_wrapper import PubSubClient
+from pubsub_wrapper.config import load_config
 
-# sys.path.append(str(Path(__file__).resolve().parents[2]))
+bus = PubSubClient(config.get("redis_url"))
 
 import os
 import logging

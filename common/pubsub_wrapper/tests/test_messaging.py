@@ -1,13 +1,13 @@
 import json
 from unittest.mock import MagicMock, patch
 
-from stocklib.messaging import EventBus
+from pubsub_wrapper import PubSubClient
 
 
 def test_publish_formats_event():
     mock_redis = MagicMock()
     with patch("redis.Redis.from_url", return_value=mock_redis):
-        bus = EventBus("redis://example.com:6379")
+        bus = PubSubClient("redis://example.com:6379")
         bus.publish("topic", "type", {"a": 1}, {"foo": "bar"})
 
     mock_redis.publish.assert_called_once()

@@ -1,5 +1,4 @@
 import sys
-from pathlib import Path
 import importlib
 from datetime import datetime
 import unittest
@@ -7,13 +6,12 @@ from unittest.mock import patch
 
 import pandas as pd
 
-sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 
 def load_put_service():
     """Import put_service with mocked config to avoid AWS calls."""
     with patch(
-        "stocklib.config.load_config",
+        "pubsub_wrapper.config.load_config",
         return_value={
             "PGHOST": "",
             "PGUSER": "",

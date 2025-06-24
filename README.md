@@ -4,6 +4,7 @@ This repository contains infrastructure and application code for the stock app.
 
 Each service lives in the `services` directory with its own `requirements.txt` and `Dockerfile`.
 The configuration stored in AWS SSM now includes a `container_registry` key which points to the local registry used by k3s (`k3sn1:32000`) and a `redis_url` key for the message bus.
+Shared utilities live in the `common/pubsub_wrapper` package. For local development run `pip install -e ./common/` to add it to your environment.
 ## Requirements
 
 - Python 3.10+
@@ -39,7 +40,7 @@ kubectl create secret generic aws-credentials \
 ## Building Service Images
 
 Build each service image from the repository root so that the Docker build
-context includes the shared `stocklib` package. When building on ARM hardware,
+context includes the shared `pubsub_wrapper` package. When building on ARM hardware,
 use `buildx` to cross build for the x86 architecture and push the image to your
 local registry. For example, to build and publish the TA service image:
 

@@ -1,4 +1,4 @@
-# Stage 1: Build TA-Lib C library
+COPY common/pubsub_wrapper/ pubsub_wrapper/
 FROM python:3.12-bullseye AS build-ta-lib
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
