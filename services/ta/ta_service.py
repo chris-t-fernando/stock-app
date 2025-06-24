@@ -4,6 +4,7 @@ import json
 import argparse
 import pandas as pd
 import psycopg2
+import numpy as np
 try:
     import talib
 except Exception:  # pragma: no cover - talib may not be installed in CI
@@ -104,12 +105,20 @@ def fetch_recent_closes(
 
 
 def calculate_macd(df: pd.DataFrame) -> pd.DataFrame:
+    """Calculate MACD values and detect crossovers."""
     if df.empty:
         return pd.DataFrame()
     if talib is None:
         raise ImportError("talib library is required to compute MACD")
 
-    macd, signal, hist = talib.MACD(df["close"].astype(float).values)
+    try:
+        closes = pd.to_numeric(df["close"], errors="raise").astype(float).to_numpy(dtype=float)
+    except Exception as exc:  # pragma: no cover - defensive check
+        raise ValueError("close column must contain numeric values") from exc
+
+    macd, signal, hist = talib.MACD(closes)
+    if np.isnan(macd).all() and np.isnan(signal).all() and np.isnan(hist).all():
+        raise ValueError("MACD calculation returned all NaN values")
     diff = macd - signal
 
     res = pd.DataFrame(
