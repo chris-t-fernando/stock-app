@@ -33,6 +33,17 @@ symbols = config["symbols"]
 api_semaphore = Semaphore(1)  # Single API call at a time for yfinance stability
 
 
+def fill_missing_values(df: pd.DataFrame) -> pd.DataFrame:
+    """Forward/back fill NaN values for OHLCV columns."""
+    if df is None or df.empty:
+        return df
+
+    for col in ["Open", "High", "Low", "Close", "Volume"]:
+        if col in df.columns:
+            df[col] = pd.Series(df[col]).ffill().bfill()
+    return df
+
+
 def get_latest_timestamp(ticker, interval):
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
@@ -50,6 +61,8 @@ def insert_ohlcv_records(ticker, interval, df):
     if df is None or df.empty:
         logger.info(f"⏭ Skipped (no data): {ticker} ({interval})")
         return 0
+
+    df = fill_missing_values(df.copy())
 
     if isinstance(df.index, pd.MultiIndex):
         df = df.reset_index(level=0)
@@ -164,12 +177,12 @@ def fetch_and_store_batch(tickers, interval, start_map):
     results = {}
     if df.columns.nlevels == 1:
         # yfinance omits the ticker level when only one ticker is requested
-        results[tickers[0]] = df
+        results[tickers[0]] = fill_missing_values(df)
     else:
         for ticker in tickers:
             if ticker in df.columns.get_level_values(1):
                 df_ticker = df.xs(ticker, axis=1, level=1)
-                results[ticker] = df_ticker
+                results[ticker] = fill_missing_values(df_ticker)
             else:
                 logger.warning(
                     f"⚠️ Ticker '{ticker}' not found in data columns for batch {tickers} ({interval})"
