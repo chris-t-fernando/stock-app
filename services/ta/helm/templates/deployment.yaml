@@ -34,4 +34,5 @@ spec:
                 secretKeyRef:
                   name: aws-credentials
                   key: aws_secret_access_key
+---
 {{- end }}

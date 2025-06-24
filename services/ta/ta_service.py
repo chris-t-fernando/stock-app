@@ -1,3 +1,8 @@
+# from pathlib import Path
+# import sys
+
+# sys.path.append(str(Path(__file__).resolve().parents[2]))
+
 import os
 import logging
 import json
@@ -169,7 +174,9 @@ def process_ticker(ticker: str, interval: str) -> int:
 def run():
     logger.info(f"TA service '{TA_NAME}' starting")
     pubsub = bus.subscribe("stock.updated")
+    logger.info(f"Subscribed to 'stock.updated' on {config.get('redis_url')}")
     for msg in pubsub.listen():
+        logger.info(f"Received message: {msg}")
         if msg["type"] != "message":
             continue
         event = json.loads(msg["data"])
