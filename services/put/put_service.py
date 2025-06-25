@@ -38,9 +38,10 @@ def fill_missing_values(df: pd.DataFrame) -> pd.DataFrame:
     if df is None or df.empty:
         return df
 
+    df = df.copy()
     for col in ["Open", "High", "Low", "Close", "Volume"]:
         if col in df.columns:
-            df[col] = pd.Series(df[col]).ffill().bfill()
+            df.loc[:, col] = pd.Series(df[col]).ffill().bfill()
     return df
 
 
@@ -181,7 +182,7 @@ def fetch_and_store_batch(tickers, interval, start_map):
     else:
         for ticker in tickers:
             if ticker in df.columns.get_level_values(1):
-                df_ticker = df.xs(ticker, axis=1, level=1)
+                df_ticker = df.xs(ticker, axis=1, level=1).copy()
                 results[ticker] = fill_missing_values(df_ticker)
             else:
                 logger.warning(
