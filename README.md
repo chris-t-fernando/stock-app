@@ -32,13 +32,13 @@ python init/init_timescaledb.py
 
 ## Deploying TA Services
 
-Use `services/ta/init/deploy_ta_services.py` to deploy technical analysis services.
+Use `services/ta/helm/deploy_ta_services.py` to deploy technical analysis services.
 The script reads configuration from AWS SSM, writes a `values.yaml` file for the
 Helm chart and then runs `helm upgrade --install`.
 The Helm chart is located alongside the service code under `services/ta/helm`.
 
 ```bash
-python services/ta/init/deploy_ta_services.py
+python services/ta/helm/deploy_ta_services.py
 ```
 
 Ensure Helm and `kubectl` are installed and your Kubernetes credentials are
