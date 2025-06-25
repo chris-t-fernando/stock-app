@@ -28,6 +28,14 @@
                 "-ta_name",
                 "macd"
             ]
+        },
+        {
+            "name": "Dbg: Refresh TA & run put",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/services/put/put_service.py",
+            "console": "integratedTerminal",
+            "preLaunchTask": "prep ta debug"
         }
     ]
 }
