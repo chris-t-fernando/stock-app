@@ -3,4 +3,8 @@ yfinance
 boto3
 psycopg2-binary
 pandas
+<<<<<<< HEAD
 TA-Lib
+=======
+TA-Lib
+>>>>>>> origin/main

@@ -1,6 +1,7 @@
 import os
 import logging
 import json
+import numpy as np
 import argparse
 import pandas as pd
 import psycopg2
@@ -30,6 +31,37 @@ DB_CONFIG = {
 bus = PubSubClient(config.get("redis_url"))
 
 LOOKBACK_ROWS = 200
+
+
+def get_latest_ohlcv_ts(ticker: str, interval: str):
+    """Return the most recent timestamp from the price table."""
+    conn = psycopg2.connect(**DB_CONFIG)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT MAX(ts) FROM stock_ohlcv WHERE ticker = %s AND interval = %s",
+        (ticker, interval),
+    )
+    result = cur.fetchone()[0]
+    cur.close()
+    conn.close()
+    return result
+
+
+def fetch_all_closes(ticker: str, interval: str) -> pd.DataFrame:
+    """Fetch all closing prices for a ticker/interval ordered by timestamp."""
+    conn = psycopg2.connect(**DB_CONFIG)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT ts, close FROM stock_ohlcv WHERE ticker = %s AND interval = %s ORDER BY ts",
+        (ticker, interval),
+    )
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    if not rows:
+        return pd.DataFrame(columns=["ts", "close"])
+    df = pd.DataFrame(rows, columns=["ts", "close"])
+    return df
 
 
 def get_latest_macd_ts(ticker: str, interval: str):
@@ -72,12 +104,24 @@ def fetch_recent_closes(
 
 
 def calculate_macd(df: pd.DataFrame) -> pd.DataFrame:
+    """Calculate MACD values and detect crossovers."""
     if df.empty:
         return pd.DataFrame()
     if talib is None:
         raise ImportError("talib library is required to compute MACD")
 
-    macd, signal, hist = talib.MACD(df["close"].astype(float).values)
+    try:
+        closes = (
+            pd.to_numeric(df["close"], errors="raise")
+            .astype(float)
+            .to_numpy(dtype=float)
+        )
+    except Exception as exc:  # pragma: no cover - defensive check
+        raise ValueError("close column must contain numeric values") from exc
+
+    macd, signal, hist = talib.MACD(closes)
+    if np.isnan(macd).all() and np.isnan(signal).all() and np.isnan(hist).all():
+        raise ValueError("MACD calculation returned all NaN values")
     diff = macd - signal
 
     res = pd.DataFrame(
@@ -161,14 +205,53 @@ def process_ticker(ticker: str, interval: str) -> int:
     return rows
 
 
+def process_backlog():
+    """Process any OHLCV rows not yet analysed for all configured tickers."""
+    symbols = config.get("symbols", [])
+    for ticker, interval in symbols:
+        latest_ta_ts = get_latest_macd_ts(ticker, interval)
+        latest_price_ts = get_latest_ohlcv_ts(ticker, interval)
+
+        if latest_price_ts is None:
+            continue
+        if latest_ta_ts and latest_ta_ts >= latest_price_ts:
+            continue
+
+        price_df = fetch_all_closes(ticker, interval)
+        if price_df.empty:
+            continue
+
+        macd_df = calculate_macd(price_df)
+        macd_df = macd_df.iloc[LOOKBACK_ROWS:]
+
+        if latest_ta_ts:
+            macd_df = macd_df[macd_df["ts"] > latest_ta_ts]
+
+        rows = insert_macd_records(ticker, interval, macd_df)
+        if rows > 0:
+            logger.info(f"✅ Processed backlog for {ticker} ({interval}) - {rows} rows")
+            bus.publish(
+                "ta.updated",
+                f"ta.updated.{TA_NAME}",
+                {
+                    "ticker": ticker,
+                    "interval": interval,
+                    "indicator": TA_NAME,
+                    "new_rows": rows,
+                },
+            )
+
+
 def run():
     logger.info(f"TA service '{TA_NAME}' starting")
+    process_backlog()
     pubsub = bus.subscribe("stock.updated")
     logger.info(f"Subscribed to 'stock.updated' on {config.get('redis_url')}")
     for msg in pubsub.listen():
         logger.info(f"Received message: {msg}")
         if msg["type"] != "message":
             continue
+        logger.debug(f"Received message: {msg}")
         event = json.loads(msg["data"])
         ticker = event["payload"].get("ticker")
         interval = event["payload"].get("interval")
@@ -185,6 +268,7 @@ def run():
                     "new_rows": new_rows,
                 },
             )
+            logger.debug(f"Pushed update to ta.updated: {TA_NAME} {ticker} {interval}")
 
 
 if __name__ == "__main__":

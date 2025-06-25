@@ -3,3 +3,6 @@ yfinance
 boto3
 psycopg2-binary
 pandas
+redis
+yfinance
+boto3

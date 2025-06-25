@@ -86,6 +86,22 @@ class TestFetchAndStoreBatch(unittest.TestCase):
             )
         assert result["MSFT"].empty
 
+    def test_nan_values_are_interpolated(self):
+        dates = pd.date_range("2024-01-01", periods=3)
+        data = {
+            "Adj Close": [1.0, 2.0, 3.0],
+            "Close": [1.0, float("nan"), 3.0],
+            "High": [1.0, 2.0, float("nan")],
+            "Low": [float("nan"), 2.0, 3.0],
+            "Open": [1.0, float("nan"), 3.0],
+            "Volume": [float("nan"), 2.0, 3.0],
+        }
+        df = pd.DataFrame(data, index=dates)
+        ps = load_put_service()
+        with patch("yfinance.download", return_value=df):
+            result = ps.fetch_and_store_batch(["AAPL"], "1d", {"AAPL": None})
+        assert not result["AAPL"].isna().any().any()
+
 
 class TestInsertAndPublish(unittest.TestCase):
     def test_publish_on_successful_insert(self):

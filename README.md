@@ -19,6 +19,8 @@ Install the shared pubsub wrapper package in editable mode:
 pip install -e ./common/
 ```
 
+<<<<<<< HEAD
+=======
 ## Init Scripts
 
 Bootstrapping scripts for shared infrastructure live in the top level
@@ -30,6 +32,7 @@ python init/init_ssm.py
 python init/init_timescaledb.py
 ```
 
+>>>>>>> origin/main
 ## Deploying TA Services
 
 Use `services/ta/init/deploy_ta_services.py` to deploy technical analysis services.
