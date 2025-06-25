@@ -2,7 +2,9 @@ import os
 import random
 import subprocess
 import time
+from pathlib import Path
 import psycopg2
+import yaml
 from pubsub_wrapper import load_config
 
 
@@ -64,38 +66,64 @@ def build_image(env: str):
         [
             "docker",
             "buildx",
+            "build",
             "--platform",
-            "linux/am64",
+            "linux/amd64",
             "-t",
             image,
             "-f",
             "services/ta/Dockerfile",
             ".",
             "--push",
-        ]
+        ],
     )
     return image, cfg
 
 
 def deploy(image: str, cfg):
     env = os.getenv("STOCKAPP_ENV", "devtest")
-    os.environ["TA_SERVICE_IMAGE"] = image
-    subprocess.run(["python", "services/ta/init/deploy_ta_services.py"], check=True)
+    algos = cfg.get("TA", []) or ["macd"]
 
-    algos = cfg.get("TA", [])
-    if not algos:
-        algos = ["macd"]
+    values = {
+        "image": image,
+        "algorithms": algos,
+        "replicas": 1,
+        "env": env,
+    }
+
+    values_path = Path(__file__).resolve().parent / "ta_values.yaml"
+    with values_path.open("w") as f:
+        yaml.safe_dump(values, f)
+
+    chart_dir = Path(__file__).resolve().parents[1] / "services/ta/helm"
+    subprocess.run(
+        [
+            "helm",
+            "upgrade",
+            "--install",
+            "ta-services",
+            str(chart_dir),
+            "-f",
+            str(values_path),
+        ],
+        check=True,
+    )
+
     for alg in algos:
         subprocess.run(
             [
                 "kubectl",
                 "rollout",
-                "status",
+                "restart",
                 f"deployment/ta-service-{alg}",
-                "--timeout=120s",
             ],
             check=True,
         )
+
+    subprocess.run(
+        ["kubectl", "get", "pods"],
+        check=True,
+    )
 
 
 def main():
