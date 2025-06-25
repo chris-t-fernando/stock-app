@@ -1,15 +1,11 @@
 import os
 import logging
 import json
+import numpy as np
 import argparse
 import pandas as pd
 import psycopg2
-import numpy as np
-
-try:
-    import talib
-except Exception:  # pragma: no cover - talib may not be installed in CI
-    talib = None
+import talib
 
 from pubsub_wrapper import PubSubClient, load_config
 
@@ -252,6 +248,7 @@ def run():
     pubsub = bus.subscribe("stock.updated")
     logger.info(f"Subscribed to 'stock.updated' on {config.get('redis_url')}")
     for msg in pubsub.listen():
+        logger.info(f"Received message: {msg}")
         if msg["type"] != "message":
             continue
         logger.debug(f"Received message: {msg}")

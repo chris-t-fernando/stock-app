@@ -33,6 +33,7 @@ symbols = config["symbols"]
 api_semaphore = Semaphore(1)  # Single API call at a time for yfinance stability
 
 
+<<<<<<< HEAD
 def fill_missing_values(df: pd.DataFrame) -> pd.DataFrame:
     """Forward/back fill NaN values for OHLCV columns."""
     if df is None or df.empty:
@@ -45,6 +46,8 @@ def fill_missing_values(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+=======
+>>>>>>> origin/main
 def get_latest_timestamp(ticker, interval):
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
