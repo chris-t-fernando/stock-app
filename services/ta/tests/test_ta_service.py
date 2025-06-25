@@ -41,3 +41,28 @@ class TestCalculateMACD(unittest.TestCase):
         assert result.loc[1, 'macd_crossover']
         assert result.loc[1, 'macd_crossover_type'] == 'bullish'
         assert not result.loc[2, 'macd_crossover']
+
+    def test_empty_df_returns_empty(self):
+        ts = load_ta_service()
+        result = ts.calculate_macd(pd.DataFrame(columns=['ts', 'close']))
+        assert result.empty
+
+    def test_invalid_close_type_raises(self):
+        ts = load_ta_service()
+        df = pd.DataFrame({'ts': pd.date_range('2024-01-01', periods=2), 'close': ['a', 'b']})
+        with patch.object(ts, 'talib'):
+            with self.assertRaises(ValueError):
+                ts.calculate_macd(df)
+
+    def test_macd_values_not_all_nan(self):
+        ts = load_ta_service()
+        df = pd.DataFrame({'ts': pd.date_range('2024-01-01', periods=5), 'close': [1,2,3,4,5]})
+        with patch.object(ts, 'talib') as mock_talib:
+            mock_talib.MACD.return_value = (
+                np.arange(5, dtype=float),
+                np.arange(5, dtype=float),
+                np.arange(5, dtype=float)
+            )
+            result = ts.calculate_macd(df)
+        assert not result[['macd','macd_signal','macd_hist']].isna().all().any()
+

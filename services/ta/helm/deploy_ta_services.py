@@ -27,7 +27,7 @@ def main():
     with values_path.open("w") as f:
         yaml.safe_dump(values, f)
 
-    chart_dir = Path(__file__).resolve().parents[1] / "helm"
+    chart_dir = Path(__file__).resolve().parent
     subprocess.run(
         [
             "helm",
