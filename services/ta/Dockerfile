@@ -18,6 +18,8 @@ COPY services/ta/requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Bust cache for the service code layer while keeping previous layers cached
+ARG CACHEBUST=1
 COPY services/ta/ta_service.py ./
 COPY common/pubsub_wrapper/ pubsub_wrapper/
 

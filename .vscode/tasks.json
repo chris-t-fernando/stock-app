@@ -1,0 +1,13 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "prep ta debug",
+            "type": "shell",
+            "command": "python init/prep_debug.py",
+            "presentation": {
+                "reveal": "always"
+            },
+        }
+    ],
+}

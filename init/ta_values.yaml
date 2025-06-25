@@ -1,6 +1,0 @@
-algorithms:
-- macd
-- rsi
-env: devtest
-image: k3sn1:32000/ta-service:latest
-replicas: 1
