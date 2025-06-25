@@ -4,8 +4,10 @@
         {
             "label": "prep ta debug",
             "type": "shell",
-            "command": "python scripts/prep_debug.py",
-            "presentation": {"reveal": "always"},
+            "command": "python init/prep_debug.py",
+            "presentation": {
+                "reveal": "always"
+            },
         }
     ],
 }

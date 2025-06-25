@@ -63,16 +63,16 @@ def build_image(env: str):
     subprocess.run(
         [
             "docker",
-            "build",
+            "buildx",
+            "--platform",
+            "linux/am64",
             "-t",
             image,
             "-f",
             "services/ta/Dockerfile",
             ".",
-            "--build-arg",
-            f"CACHEBUST={int(time.time())}",
-        ],
-        check=True,
+            "--push",
+        ]
     )
     return image, cfg
 

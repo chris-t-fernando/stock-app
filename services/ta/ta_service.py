@@ -162,7 +162,7 @@ def process_ticker(ticker: str, interval: str) -> int:
 
 
 def run():
-    logger.info(f"TA service '{TA_NAME}' starting")
+    logger.info(f"TA service '{TA_NAME}' starting test")
     pubsub = bus.subscribe("stock.updated")
     logger.info(f"Subscribed to 'stock.updated' on {config.get('redis_url')}")
     for msg in pubsub.listen():
