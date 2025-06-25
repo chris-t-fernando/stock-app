@@ -5,6 +5,7 @@ import argparse
 import pandas as pd
 import psycopg2
 import numpy as np
+
 try:
     import talib
 except Exception:  # pragma: no cover - talib may not be installed in CI
@@ -35,6 +36,7 @@ bus = PubSubClient(config.get("redis_url"))
 
 LOOKBACK_ROWS = 200
 
+
 def get_latest_ohlcv_ts(ticker: str, interval: str):
     """Return the most recent timestamp from the price table."""
     conn = psycopg2.connect(**DB_CONFIG)
@@ -47,6 +49,7 @@ def get_latest_ohlcv_ts(ticker: str, interval: str):
     cur.close()
     conn.close()
     return result
+
 
 def fetch_all_closes(ticker: str, interval: str) -> pd.DataFrame:
     """Fetch all closing prices for a ticker/interval ordered by timestamp."""
@@ -112,7 +115,11 @@ def calculate_macd(df: pd.DataFrame) -> pd.DataFrame:
         raise ImportError("talib library is required to compute MACD")
 
     try:
-        closes = pd.to_numeric(df["close"], errors="raise").astype(float).to_numpy(dtype=float)
+        closes = (
+            pd.to_numeric(df["close"], errors="raise")
+            .astype(float)
+            .to_numpy(dtype=float)
+        )
     except Exception as exc:  # pragma: no cover - defensive check
         raise ValueError("close column must contain numeric values") from exc
 
@@ -226,9 +233,7 @@ def process_backlog():
 
         rows = insert_macd_records(ticker, interval, macd_df)
         if rows > 0:
-            logger.info(
-                f"✅ Processed backlog for {ticker} ({interval}) - {rows} rows"
-            )
+            logger.info(f"✅ Processed backlog for {ticker} ({interval}) - {rows} rows")
             bus.publish(
                 "ta.updated",
                 f"ta.updated.{TA_NAME}",
@@ -247,9 +252,9 @@ def run():
     pubsub = bus.subscribe("stock.updated")
     logger.info(f"Subscribed to 'stock.updated' on {config.get('redis_url')}")
     for msg in pubsub.listen():
-        logger.info(f"Received message: {msg}")
         if msg["type"] != "message":
             continue
+        logger.debug(f"Received message: {msg}")
         event = json.loads(msg["data"])
         ticker = event["payload"].get("ticker")
         interval = event["payload"].get("interval")
@@ -266,6 +271,7 @@ def run():
                     "new_rows": new_rows,
                 },
             )
+            logger.debug(f"Pushed update to ta.updated: {TA_NAME} {ticker} {interval}")
 
 
 if __name__ == "__main__":
