@@ -1,0 +1,4 @@
+image: put-service:latest
+intervals: []
+replicas: 1
+env: devtest

@@ -1,0 +1,40 @@
+{{- range $int := .Values.intervals }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: put-service-{{ $int }}
+  labels:
+    app: put-service-{{ $int }}
+spec:
+  replicas: {{ $.Values.replicas }}
+  selector:
+    matchLabels:
+      app: put-service-{{ $int }}
+  template:
+    metadata:
+      labels:
+        app: put-service-{{ $int }}
+    spec:
+      containers:
+        - name: put-service
+          image: {{ $.Values.image }}
+          command: ["python", "put_service.py", "-interval", "{{ $int }}"]
+          env:
+            - name: STOCKAPP_ENV
+              value: {{ $.Values.env | quote }}
+            - name: PUT_SERVICE_IMAGE
+              value: {{ $.Values.image | quote }}
+            - name: INTERVAL
+              value: {{ $int | quote }}
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: aws_access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: aws_secret_access_key
+---
+{{- end }}

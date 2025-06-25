@@ -1,11 +1,52 @@
 import os
 import random
 import subprocess
-import time
 from pathlib import Path
 import psycopg2
 import yaml
 from pubsub_wrapper import load_config
+
+
+def docker_build(image: str, dockerfile: str, context: str = "."):
+    subprocess.run(
+        [
+            "docker",
+            "buildx",
+            "build",
+            "--platform",
+            "linux/amd64",
+            "-t",
+            image,
+            "-f",
+            dockerfile,
+            context,
+            "--push",
+        ],
+        check=True,
+    )
+
+
+def helm_upgrade_install(release: str, chart_dir: Path, values_path: Path):
+    subprocess.run(
+        [
+            "helm",
+            "upgrade",
+            "--install",
+            release,
+            str(chart_dir),
+            "-f",
+            str(values_path),
+        ],
+        check=True,
+    )
+
+
+def rollout_restart(deployments: list[str]):
+    for dep in deployments:
+        subprocess.run(
+            ["kubectl", "rollout", "restart", f"deployment/{dep}"],
+            check=True,
+        )
 
 
 def get_db_config(env: str):
@@ -58,29 +99,15 @@ def clean_database(env: str):
         conn.close()
 
 
-def build_image(env: str):
+def build_image(env: str, service: str, dockerfile: str) -> tuple[str, dict]:
     _, cfg = get_db_config(env)
     registry = cfg.get("container_registry", "")
-    image = f"{registry}/ta-service:latest" if registry else "ta-service:latest"
-    subprocess.run(
-        [
-            "docker",
-            "buildx",
-            "build",
-            "--platform",
-            "linux/amd64",
-            "-t",
-            image,
-            "-f",
-            "services/ta/Dockerfile",
-            ".",
-            "--push",
-        ],
-    )
+    image = f"{registry}/{service}:latest" if registry else f"{service}:latest"
+    docker_build(image, dockerfile)
     return image, cfg
 
 
-def deploy(image: str, cfg):
+def deploy_ta(image: str, cfg):
     env = os.getenv("STOCKAPP_ENV", "devtest")
     algos = cfg.get("TA", []) or ["macd"]
 
@@ -96,41 +123,52 @@ def deploy(image: str, cfg):
         yaml.safe_dump(values, f)
 
     chart_dir = Path(__file__).resolve().parents[1] / "services/ta/helm"
-    subprocess.run(
-        [
-            "helm",
-            "upgrade",
-            "--install",
-            "ta-services",
-            str(chart_dir),
-            "-f",
-            str(values_path),
-        ],
-        check=True,
-    )
+    helm_upgrade_install("ta-services", chart_dir, values_path)
 
-    for alg in algos:
-        subprocess.run(
-            [
-                "kubectl",
-                "rollout",
-                "restart",
-                f"deployment/ta-service-{alg}",
-            ],
-            check=True,
-        )
+    rollout_restart([f"ta-service-{alg}" for alg in algos])
 
-    subprocess.run(
-        ["kubectl", "get", "pods"],
-        check=True,
-    )
+    subprocess.run(["kubectl", "get", "pods"], check=True)
+
+
+def deploy_put(image: str, cfg):
+    env = os.getenv("STOCKAPP_ENV", "devtest")
+    intervals = ["1m", "5m", "1h", "1d"]
+
+    values = {
+        "image": image,
+        "intervals": intervals,
+        "replicas": 1,
+        "env": env,
+    }
+
+    values_path = Path(__file__).resolve().parent / "put_values.yaml"
+    with values_path.open("w") as f:
+        yaml.safe_dump(values, f)
+
+    chart_dir = Path(__file__).resolve().parents[1] / "services/put/helm"
+    helm_upgrade_install("put-services", chart_dir, values_path)
+
+    rollout_restart([f"put-service-{i}" for i in intervals])
+
+    subprocess.run(["kubectl", "get", "pods"], check=True)
 
 
 def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Prepare debug environment")
+    parser.add_argument("--service", choices=["ta", "put"], default="ta")
+    args = parser.parse_args()
+
     env = os.getenv("STOCKAPP_ENV", "devtest")
     clean_database(env)
-    image, cfg = build_image(env)
-    deploy(image, cfg)
+
+    if args.service == "ta":
+        image, cfg = build_image(env, "ta-service", "services/ta/Dockerfile")
+        deploy_ta(image, cfg)
+    else:
+        image, cfg = build_image(env, "put-service", "services/put/Dockerfile")
+        deploy_put(image, cfg)
 
 
 if __name__ == "__main__":
