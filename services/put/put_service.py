@@ -3,7 +3,7 @@ import os
 import logging
 import argparse
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pubsub_wrapper import PubSubClient, load_config
 import yfinance as yf
 import psycopg2
@@ -24,7 +24,7 @@ config = load_config(ENV)
 parser = argparse.ArgumentParser(description="Price update service")
 parser.add_argument("-interval", help="interval to process")
 args, _ = parser.parse_known_args()
-INTERVAL = args.interval or os.getenv("INTERVAL")
+SERVICE_INTERVAL = args.interval or os.getenv("INTERVAL")
 
 bus = PubSubClient(config.get("redis_url"))
 
@@ -216,7 +216,7 @@ def insert_and_publish(ticker, interval, df):
 
 def next_run_time(interval: str, now: datetime | None = None) -> datetime:
     """Return the next scheduled run time for the given interval."""
-    now = now or datetime.utcnow()
+    now = now or datetime.now(timezone.utc)
     if interval.endswith("m"):
         step = int(interval[:-1])
         base = now.replace(second=0, microsecond=0)
@@ -247,42 +247,37 @@ def next_run_time(interval: str, now: datetime | None = None) -> datetime:
 
 def sleep_until_next(interval: str):
     next_ts = next_run_time(interval)
-    wait = (next_ts - datetime.utcnow()).total_seconds()
+    wait = (next_ts - datetime.now(timezone.utc)).total_seconds()
     if wait > 0:
         logger.info(f"Sleeping {wait:.1f}s until next run at {next_ts} for {interval}")
         time.sleep(wait)
 
 
-def run(target_interval: str | None = None):
-    interval_map: dict[str, list[str]] = {}
-    for ticker, interval in symbols:
-        interval_map.setdefault(interval, []).append(ticker)
+def run(target_interval: str):
+    tickers = [t for t, i in symbols if i == target_interval]
+    if not tickers:
+        logger.warning(f"No tickers configured for interval {target_interval}")
+        return
 
-    intervals = [target_interval] if target_interval else list(interval_map.keys())
+    start_map = {t: get_latest_timestamp(t, target_interval) for t in tickers}
 
-    for interval in intervals:
-        tickers = interval_map.get(interval, [])
-        if not tickers:
-            continue
-        start_map = {t: get_latest_timestamp(t, interval) for t in tickers}
+    batch_data = fetch_and_store_batch(tickers, target_interval, start_map)
 
-        batch_data = fetch_and_store_batch(tickers, interval, start_map)
-
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            futures = []
-            for ticker in tickers:
-                df_ticker = batch_data.get(ticker)
-                if df_ticker is None or df_ticker.empty:
-                    logger.info(f"⏭ Skipped (no data): {ticker} ({interval})")
-                    continue
-                futures.append(
-                    executor.submit(insert_and_publish, ticker, interval, df_ticker)
-                )
-            for future in as_completed(futures):
-                try:
-                    future.result()
-                except Exception as e:
-                    logger.error(f"❌ Error during insert for ticker batch: {e}")
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = []
+        for ticker in tickers:
+            df_ticker = batch_data.get(ticker)
+            if df_ticker is None or df_ticker.empty:
+                logger.info(f"⏭ Skipped (no data): {ticker} ({target_interval})")
+                continue
+            futures.append(
+                executor.submit(insert_and_publish, ticker, target_interval, df_ticker)
+            )
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except Exception as e:
+                logger.error(f"❌ Error during insert for ticker batch: {e}")
 
 
 def run_forever(interval: str):
@@ -293,7 +288,6 @@ def run_forever(interval: str):
 
 
 if __name__ == "__main__":
-    if INTERVAL:
-        run_forever(INTERVAL)
-    else:
-        run()
+    if not SERVICE_INTERVAL:
+        raise SystemExit("INTERVAL must be provided via argument or environment variable")
+    run_forever(SERVICE_INTERVAL)
