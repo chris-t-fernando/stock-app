@@ -66,3 +66,22 @@ class TestCalculateMACD(unittest.TestCase):
             result = ts.calculate_macd(df)
         assert not result[['macd','macd_signal','macd_hist']].isna().all().any()
 
+    def test_nan_rows_logged_and_skipped(self):
+        ts = load_ta_service()
+        df = pd.DataFrame({
+            'ts': pd.date_range('2024-01-01', periods=3),
+            'close': [1.0, np.nan, 3.0]
+        })
+
+        with patch.object(ts, 'logger') as mock_logger, \
+             patch.object(ts, 'talib') as mock_talib:
+            mock_talib.MACD.return_value = (
+                np.array([1.0, 3.0]),
+                np.array([0.5, 2.5]),
+                np.array([0.0, 0.0])
+            )
+            result = ts.calculate_macd(df)
+            mock_logger.error.assert_called_once()
+
+        assert len(result) == 2
+
