@@ -4,13 +4,10 @@
     ],
     "python.testing.unittestArgs": [
         "-v",
-        "-s", "./services/audit/tests",
-        "-s", "./services/order/tests",
-        "-s", "./services/put/tests",
-        "-s", "./services/strategy/tests",
-        "-s", "./services/ta/tests",
-        "-s", "./common/pubsub_wrapper/tests",
-        "-p", "test_*.py"
+        "-s",
+        ".",
+        "-p",
+        "test_*.py"
     ],
     "python.testing.pytestEnabled": false,
     "python.testing.unittestEnabled": true
