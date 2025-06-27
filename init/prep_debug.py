@@ -157,18 +157,17 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Prepare debug environment")
-    parser.add_argument("--service", choices=["ta", "put"], default="ta")
-    args = parser.parse_args()
+    # parser.add_argument("--service", choices=["ta", "put"], default="ta")
+    # args = parser.parse_args()
 
     env = os.getenv("STOCKAPP_ENV", "devtest")
     clean_database(env)
 
-    if args.service == "ta":
-        image, cfg = build_image(env, "ta-service", "services/ta/Dockerfile")
-        deploy_ta(image, cfg)
-    else:
-        image, cfg = build_image(env, "put-service", "services/put/Dockerfile")
-        deploy_put(image, cfg)
+    image, cfg = build_image(env, "ta-service", "services/ta/Dockerfile")
+    deploy_ta(image, cfg)
+
+    image, cfg = build_image(env, "put-service", "services/put/Dockerfile")
+    deploy_put(image, cfg)
 
 
 if __name__ == "__main__":

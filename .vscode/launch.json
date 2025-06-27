@@ -39,7 +39,11 @@
             "request": "launch",
             "program": "${workspaceFolder}/services/put/put_service.py",
             "console": "integratedTerminal",
-            "preLaunchTask": "prep ta debug"
+            "preLaunchTask": "prep ta debug",
+            "args": [
+                "-interval",
+                "1m"
+            ]
         }
     ]
 }
