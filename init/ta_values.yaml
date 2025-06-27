@@ -1,6 +1,9 @@
 algorithms:
 - macd
 - rsi
+- sma
+- bollinger_bands
+- obv
 env: devtest
 image: k3sn1:32000/ta-service:latest
 replicas: 1

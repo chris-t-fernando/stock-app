@@ -24,3 +24,36 @@ CREATE TABLE stock_ta_macd (
     PRIMARY KEY (ticker, interval, ts)
 );
 
+CREATE TABLE stock_ta_rsi (
+    ticker       TEXT        NOT NULL,
+    interval     TEXT        NOT NULL,
+    ts           TIMESTAMPTZ NOT NULL,
+    rsi          DOUBLE PRECISION,
+    PRIMARY KEY (ticker, interval, ts)
+);
+
+CREATE TABLE stock_ta_sma (
+    ticker       TEXT        NOT NULL,
+    interval     TEXT        NOT NULL,
+    ts           TIMESTAMPTZ NOT NULL,
+    sma          DOUBLE PRECISION,
+    PRIMARY KEY (ticker, interval, ts)
+);
+
+CREATE TABLE stock_ta_bollinger_bands (
+    ticker       TEXT        NOT NULL,
+    interval     TEXT        NOT NULL,
+    ts           TIMESTAMPTZ NOT NULL,
+    bb_upper     DOUBLE PRECISION,
+    bb_middle    DOUBLE PRECISION,
+    bb_lower     DOUBLE PRECISION,
+    PRIMARY KEY (ticker, interval, ts)
+);
+
+CREATE TABLE stock_ta_obv (
+    ticker       TEXT        NOT NULL,
+    interval     TEXT        NOT NULL,
+    ts           TIMESTAMPTZ NOT NULL,
+    obv          BIGINT,
+    PRIMARY KEY (ticker, interval, ts)
+);
