@@ -110,6 +110,13 @@ def calculate_macd(df: pd.DataFrame) -> pd.DataFrame:
     if talib is None:
         raise ImportError("talib library is required to compute MACD")
 
+    if df["close"].isna().any():
+        nan_count = df["close"].isna().sum()
+        logger.error(f"Found {nan_count} NaN close values - skipping those rows")
+        df = df.dropna(subset=["close"]).reset_index(drop=True)
+        if df.empty:
+            return pd.DataFrame()
+
     try:
         closes = (
             pd.to_numeric(df["close"], errors="raise")
