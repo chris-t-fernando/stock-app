@@ -51,6 +51,7 @@ def fill_missing_values(df: pd.DataFrame) -> pd.DataFrame:
             df.loc[:, col] = pd.Series(df[col]).ffill().bfill()
     return df
 
+
 def get_latest_timestamp(ticker, interval):
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
@@ -281,6 +282,7 @@ def run(target_interval: str):
 
 
 def run_forever(interval: str):
+    run(interval)
     sleep_until_next(interval)
     while True:
         run(interval)
@@ -289,5 +291,7 @@ def run_forever(interval: str):
 
 if __name__ == "__main__":
     if not SERVICE_INTERVAL:
-        raise SystemExit("INTERVAL must be provided via argument or environment variable")
+        raise SystemExit(
+            "INTERVAL must be provided via argument or environment variable"
+        )
     run_forever(SERVICE_INTERVAL)
