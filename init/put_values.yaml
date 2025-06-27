@@ -1,0 +1,8 @@
+env: devtest
+image: k3sn1:32000/put-service:latest
+intervals:
+- 1m
+- 5m
+- 1h
+- 1d
+replicas: 1

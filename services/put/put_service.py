@@ -1,11 +1,13 @@
 # app/services/put_service.py
 import os
 import logging
+import argparse
+import time
+from datetime import datetime, timedelta, timezone
 from pubsub_wrapper import PubSubClient, load_config
 import yfinance as yf
 import psycopg2
 import pandas as pd
-from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Semaphore, Lock
 from collections import deque
@@ -18,6 +20,11 @@ logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
 ENV = os.getenv("STOCKAPP_ENV", "devtest")
 config = load_config(ENV)
+
+parser = argparse.ArgumentParser(description="Price update service")
+parser.add_argument("-interval", help="interval to process")
+args, _ = parser.parse_known_args()
+SERVICE_INTERVAL = args.interval or os.getenv("INTERVAL")
 
 bus = PubSubClient(config.get("redis_url"))
 
@@ -33,7 +40,6 @@ symbols = config["symbols"]
 api_semaphore = Semaphore(1)  # Single API call at a time for yfinance stability
 
 
-<<<<<<< HEAD
 def fill_missing_values(df: pd.DataFrame) -> pd.DataFrame:
     """Forward/back fill NaN values for OHLCV columns."""
     if df is None or df.empty:
@@ -46,8 +52,6 @@ def fill_missing_values(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-=======
->>>>>>> origin/main
 def get_latest_timestamp(ticker, interval):
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
@@ -211,32 +215,83 @@ def insert_and_publish(ticker, interval, df):
         logger.info(f"⏭ No new rows to insert for {ticker} ({interval})")
 
 
-def run():
-    interval_map = {}
-    for ticker, interval in symbols:
-        interval_map.setdefault(interval, []).append(ticker)
+def next_run_time(interval: str, now: datetime | None = None) -> datetime:
+    """Return the next scheduled run time for the given interval."""
+    now = now or datetime.now(timezone.utc)
+    if interval.endswith("m"):
+        step = int(interval[:-1])
+        base = now.replace(second=0, microsecond=0)
+        minutes = (now.minute // step) * step
+        base = base.replace(minute=minutes)
+        next_time = base + timedelta(minutes=step)
+    elif interval.endswith("h"):
+        step = int(interval[:-1])
+        base = now.replace(minute=0, second=0, microsecond=0)
+        hours = (now.hour // step) * step
+        base = base.replace(hour=hours)
+        next_time = base + timedelta(hours=step)
+    elif interval.endswith("d"):
+        step = int(interval[:-1])
+        base = datetime(now.year, now.month, now.day)
+        next_time = base + timedelta(days=step)
+        if next_time <= now:
+            next_time += timedelta(days=step)
+    else:
+        raise ValueError(f"unsupported interval: {interval}")
+    if next_time <= now:
+        if interval.endswith("m"):
+            next_time += timedelta(minutes=step)
+        elif interval.endswith("h"):
+            next_time += timedelta(hours=step)
+    return next_time + timedelta(seconds=30)
 
-    for interval, tickers in interval_map.items():
-        start_map = {t: get_latest_timestamp(t, interval) for t in tickers}
 
-        batch_data = fetch_and_store_batch(tickers, interval, start_map)
+def sleep_until_next(interval: str):
+    next_ts = next_run_time(interval)
+    wait = (next_ts - datetime.now(timezone.utc)).total_seconds()
+    if wait > 0:
+        logger.info(f"Sleeping {wait:.1f}s until next run at {next_ts} for {interval}")
+        time.sleep(wait)
 
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            futures = []
-            for ticker in tickers:
-                df_ticker = batch_data.get(ticker)
-                if df_ticker is None or df_ticker.empty:
-                    logger.info(f"⏭ Skipped (no data): {ticker} ({interval})")
-                    continue
-                futures.append(
-                    executor.submit(insert_and_publish, ticker, interval, df_ticker)
-                )
-            for future in as_completed(futures):
-                try:
-                    future.result()
-                except Exception as e:
-                    logger.error(f"❌ Error during insert for ticker batch: {e}")
+
+def run(target_interval: str):
+    tickers = [t for t, i in symbols if i == target_interval]
+    if not tickers:
+        logger.warning(f"No tickers configured for interval {target_interval}")
+        return
+
+    start_map = {t: get_latest_timestamp(t, target_interval) for t in tickers}
+
+    batch_data = fetch_and_store_batch(tickers, target_interval, start_map)
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = []
+        for ticker in tickers:
+            df_ticker = batch_data.get(ticker)
+            if df_ticker is None or df_ticker.empty:
+                logger.info(f"⏭ Skipped (no data): {ticker} ({target_interval})")
+                continue
+            futures.append(
+                executor.submit(insert_and_publish, ticker, target_interval, df_ticker)
+            )
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except Exception as e:
+                logger.error(f"❌ Error during insert for ticker batch: {e}")
+
+
+def run_forever(interval: str):
+    run(interval)
+    sleep_until_next(interval)
+    while True:
+        run(interval)
+        sleep_until_next(interval)
 
 
 if __name__ == "__main__":
-    run()
+    if not SERVICE_INTERVAL:
+        raise SystemExit(
+            "INTERVAL must be provided via argument or environment variable"
+        )
+    run_forever(SERVICE_INTERVAL)

@@ -16,7 +16,11 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/services/put/put_service.py",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "args": [
+                "-interval",
+                "1m"
+            ]
         },
         {
             "name": "dbg: ta_service",
