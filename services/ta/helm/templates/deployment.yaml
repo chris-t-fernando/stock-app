@@ -1,6 +1,6 @@
 {{- range $alg := .Values.algorithms }}
 {{- $safeAlg := $alg | lower | replace "_" "-" | regexReplaceAll "[^a-z0-9-]+" "-" | trimAll "-" }}
-{{- if not $safeAlg }}
+{{- if eq $safeAlg "" }}
 {{- fail (printf "invalid algorithm name: %s" $alg) }}
 {{- end }}
 apiVersion: apps/v1
