@@ -1,7 +1,10 @@
 import numpy as np
 import pandas as pd
 import psycopg2
-import talib
+try:  # pragma: no cover - optional dependency
+    import talib  # type: ignore
+except Exception:  # pragma: no cover - allow missing C library
+    talib = None
 
 from .base import BaseTAAlgorithm
 

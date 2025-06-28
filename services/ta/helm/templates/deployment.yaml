@@ -1,19 +1,20 @@
 {{- range $alg := .Values.algorithms }}
+{{- $safeAlg := replace $alg "_" "-" }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ta-service-{{ $alg }}
+  name: ta-service-{{ $safeAlg }}
   labels:
-    app: ta-service-{{ $alg }}
+    app: ta-service-{{ $safeAlg }}
 spec:
   replicas: {{ $.Values.replicas }}
   selector:
     matchLabels:
-      app: ta-service-{{ $alg }}
+      app: ta-service-{{ $safeAlg }}
   template:
     metadata:
       labels:
-        app: ta-service-{{ $alg }}
+        app: ta-service-{{ $safeAlg }}
     spec:
       containers:
         - name: ta-service
