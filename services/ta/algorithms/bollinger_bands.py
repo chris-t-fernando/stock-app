@@ -9,7 +9,7 @@ from .base import BaseTAAlgorithm
 
 
 class BollingerBands(BaseTAAlgorithm):
-    name = "bollinger_bands"
+    name = "bollingerbands"
     table_name = "stock_ta_bollinger_bands"
 
     def calculate(self, df: pd.DataFrame) -> pd.DataFrame:

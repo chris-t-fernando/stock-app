@@ -2,7 +2,7 @@ algorithms:
 - macd
 - rsi
 - sma
-- bollinger_bands
+- bollingerbands
 - obv
 env: devtest
 image: k3sn1:32000/ta-service:latest
