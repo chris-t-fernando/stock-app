@@ -3,7 +3,9 @@ import psycopg2
 try:  # pragma: no cover - optional dependency
     import talib  # type: ignore
 except Exception:  # pragma: no cover - allow missing C library
-    talib = None
+    from types import SimpleNamespace
+
+    talib = SimpleNamespace()
 
 from .base import BaseTAAlgorithm
 
@@ -15,6 +17,8 @@ class RSI(BaseTAAlgorithm):
     def calculate(self, df: pd.DataFrame) -> pd.DataFrame:
         if df.empty:
             return pd.DataFrame()
+        if not hasattr(talib, "RSI"):
+            raise ImportError("talib library is required to compute RSI")
         closes = pd.to_numeric(df["close"], errors="coerce").astype(float).to_numpy(dtype=float)
         rsi = talib.RSI(closes)
         return pd.DataFrame({"ts": df["ts"], "rsi": rsi})

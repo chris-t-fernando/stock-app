@@ -3,7 +3,9 @@ import psycopg2
 try:  # pragma: no cover - optional dependency
     import talib  # type: ignore
 except Exception:  # pragma: no cover - allow missing C library
-    talib = None
+    from types import SimpleNamespace
+
+    talib = SimpleNamespace()
 
 from .base import BaseTAAlgorithm
 
@@ -15,6 +17,8 @@ class OBV(BaseTAAlgorithm):
     def calculate(self, df: pd.DataFrame) -> pd.DataFrame:
         if df.empty:
             return pd.DataFrame()
+        if not hasattr(talib, "OBV"):
+            raise ImportError("talib library is required to compute OBV")
         closes = pd.to_numeric(df["close"], errors="coerce").astype(float).to_numpy(dtype=float)
         volumes = pd.to_numeric(df["volume"], errors="coerce").fillna(0).astype(float).to_numpy(dtype=float)
         obv = talib.OBV(closes, volumes)

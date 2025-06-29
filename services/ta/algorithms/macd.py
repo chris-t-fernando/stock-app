@@ -4,7 +4,9 @@ import psycopg2
 try:  # pragma: no cover - optional dependency
     import talib  # type: ignore
 except Exception:  # pragma: no cover - allow missing C library
-    talib = None
+    from types import SimpleNamespace
+
+    talib = SimpleNamespace()  # allows patching in tests without real library
 
 from .base import BaseTAAlgorithm
 
@@ -16,7 +18,7 @@ class MACD(BaseTAAlgorithm):
     def calculate(self, df: pd.DataFrame) -> pd.DataFrame:
         if df.empty:
             return pd.DataFrame()
-        if talib is None:
+        if not hasattr(talib, "MACD"):
             raise ImportError("talib library is required to compute MACD")
 
         if df["close"].isna().any():

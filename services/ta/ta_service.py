@@ -6,7 +6,11 @@ import pandas as pd
 import psycopg2
 
 from pubsub_wrapper import PubSubClient, load_config
-from .algorithms import get_algorithm
+
+try:  # allow running as a script without package context
+    from .algorithms import get_algorithm  # type: ignore
+except Exception:  # pragma: no cover - fallback for Docker build
+    from algorithms import get_algorithm  # type: ignore
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)

@@ -3,7 +3,9 @@ import psycopg2
 try:  # pragma: no cover - optional dependency
     import talib  # type: ignore
 except Exception:  # pragma: no cover - allow missing C library
-    talib = None
+    from types import SimpleNamespace
+
+    talib = SimpleNamespace()
 
 from .base import BaseTAAlgorithm
 
@@ -15,6 +17,8 @@ class BollingerBands(BaseTAAlgorithm):
     def calculate(self, df: pd.DataFrame) -> pd.DataFrame:
         if df.empty:
             return pd.DataFrame()
+        if not hasattr(talib, "BBANDS"):
+            raise ImportError("talib library is required to compute Bollinger Bands")
         closes = pd.to_numeric(df["close"], errors="coerce").astype(float).to_numpy(dtype=float)
         upper, middle, lower = talib.BBANDS(closes)
         return pd.DataFrame(
