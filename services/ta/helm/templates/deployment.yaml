@@ -1,19 +1,23 @@
 {{- range $alg := .Values.algorithms }}
+{{- $safeAlg := $alg | lower | replace "_" "-" | trimAll "-" }}
+{{- if eq $safeAlg "" }}
+{{- fail (printf "invalid algorithm name: %s" $alg) }}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ta-service-{{ $alg }}
+  name: ta-service-{{ $safeAlg }}
   labels:
-    app: ta-service-{{ $alg }}
+    app: ta-service-{{ $safeAlg }}
 spec:
   replicas: {{ $.Values.replicas }}
   selector:
     matchLabels:
-      app: ta-service-{{ $alg }}
+      app: ta-service-{{ $safeAlg }}
   template:
     metadata:
       labels:
-        app: ta-service-{{ $alg }}
+        app: ta-service-{{ $safeAlg }}
     spec:
       containers:
         - name: ta-service

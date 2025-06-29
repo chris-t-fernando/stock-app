@@ -18,7 +18,7 @@ DEFAULT_CONFIG = {
         ("ACN", "1m"),
         ("ACN", "1h"),
     ],
-    "TA": ["macd", "rsi"],
+    "TA": ["macd", "rsi", "sma", "bollingerbands", "obv"],
     # Registry that hosts our container images for k3s
     "container_registry": "k3sn1:32000",
     # Redis connection URL used by services
