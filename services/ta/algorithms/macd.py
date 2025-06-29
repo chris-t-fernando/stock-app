@@ -29,6 +29,7 @@ class MACD(BaseTAAlgorithm):
         closes = pd.to_numeric(df["close"], errors="raise").astype(float).to_numpy(dtype=float)
         macd, signal, hist = talib.MACD(closes)
         diff = macd - signal
+        diff_series = pd.Series(diff, index=df.index)
 
         res = pd.DataFrame(
             {
@@ -43,8 +44,8 @@ class MACD(BaseTAAlgorithm):
         res["macd_crossover"] = False
         res["macd_crossover_type"] = None
 
-        bullish = (diff >= 0) & (pd.Series(diff).shift(1) < 0)
-        bearish = (diff <= 0) & (pd.Series(diff).shift(1) > 0)
+        bullish = (diff_series >= 0) & (diff_series.shift(1) < 0)
+        bearish = (diff_series <= 0) & (diff_series.shift(1) > 0)
         res.loc[bullish, "macd_crossover"] = True
         res.loc[bullish, "macd_crossover_type"] = "bullish"
         res.loc[bearish, "macd_crossover"] = True
