@@ -99,9 +99,13 @@ class TrendFollowConfirmation(BaseStrategy):
         macd = fetch_latest("stock_ta_macd", ticker, interval)
         if not macd:
             return []
-        if price > sma and macd.get("macd", 0) > macd.get("macd_signal", 0):
+        macd_val = macd.get("macd")
+        signal = macd.get("macd_signal")
+        if macd_val is None or signal is None or pd.isna(macd_val) or pd.isna(signal):
+            return []
+        if price > sma and macd_val > signal:
             return [{"ticker": ticker, "interval": interval, "action": "BUY"}]
-        if price < sma and macd.get("macd", 0) < macd.get("macd_signal", 0):
+        if price < sma and macd_val < signal:
             return [{"ticker": ticker, "interval": interval, "action": "SELL"}]
         return []
 
@@ -118,7 +122,10 @@ class RSIPullback(BaseStrategy):
         rsi = fetch_latest("stock_ta_rsi", ticker, interval)
         if not rsi:
             return []
-        if price > sma200 and rsi.get("rsi", 100) < 30:
+        rsi_val = rsi.get("rsi")
+        if rsi_val is None or pd.isna(rsi_val):
+            return []
+        if price > sma200 and rsi_val < 30:
             return [{"ticker": ticker, "interval": interval, "action": "BUY"}]
         return []
 
@@ -132,7 +139,9 @@ class MACDRSIStrategy(BaseStrategy):
         if not macd or not rsi:
             return []
         cross = macd.get("macd_crossover_type")
-        rsi_val = rsi.get("rsi", 50)
+        rsi_val = rsi.get("rsi")
+        if rsi_val is None or pd.isna(rsi_val):
+            return []
         if cross == "bullish" and rsi_val > 30:
             return [{"ticker": ticker, "interval": interval, "action": "BUY"}]
         if cross == "bearish" and rsi_val < 70:
@@ -150,10 +159,21 @@ class BollingerMomentum(BaseStrategy):
         if df.empty or not bb or not rsi:
             return []
         price = df["close"].iloc[-1]
-        rsi_val = rsi.get("rsi", 50)
-        if price > bb.get("bb_upper", float("inf")) and rsi_val > 50:
+        rsi_val = rsi.get("rsi")
+        bb_upper = bb.get("bb_upper")
+        bb_lower = bb.get("bb_lower")
+        if (
+            rsi_val is None
+            or pd.isna(rsi_val)
+            or bb_upper is None
+            or pd.isna(bb_upper)
+            or bb_lower is None
+            or pd.isna(bb_lower)
+        ):
+            return []
+        if price > bb_upper and rsi_val > 50:
             return [{"ticker": ticker, "interval": interval, "action": "BUY"}]
-        if price < bb.get("bb_lower", float("-inf")) and rsi_val < 50:
+        if price < bb_lower and rsi_val < 50:
             return [{"ticker": ticker, "interval": interval, "action": "SELL"}]
         return []
 
@@ -171,10 +191,21 @@ class TripleConfirmation(BaseStrategy):
         sma50 = df["close"].rolling(50).mean().iloc[-1]
         recent_high = df["high"].rolling(20).max().iloc[-1]
         recent_low = df["low"].rolling(20).min().iloc[-1]
-        rsi_val = rsi.get("rsi", 50)
-        if price > sma50 and rsi_val > 50 and price > max(recent_high, bb.get("bb_upper", recent_high)):
+        rsi_val = rsi.get("rsi")
+        bb_upper = bb.get("bb_upper")
+        bb_lower = bb.get("bb_lower")
+        if (
+            rsi_val is None
+            or pd.isna(rsi_val)
+            or bb_upper is None
+            or pd.isna(bb_upper)
+            or bb_lower is None
+            or pd.isna(bb_lower)
+        ):
+            return []
+        if price > sma50 and rsi_val > 50 and price > max(recent_high, bb_upper):
             return [{"ticker": ticker, "interval": interval, "action": "BUY"}]
-        if price < sma50 and rsi_val < 50 and price < min(recent_low, bb.get("bb_lower", recent_low)):
+        if price < sma50 and rsi_val < 50 and price < min(recent_low, bb_lower):
             return [{"ticker": ticker, "interval": interval, "action": "SELL"}]
         return []
 
@@ -194,6 +225,8 @@ class ADXMACDStrategy(BaseStrategy):
         if adx_val <= 20:
             return []
         cross = macd.get("macd_crossover_type")
+        if cross is None:
+            return []
         if cross == "bullish":
             return [{"ticker": ticker, "interval": interval, "action": "BUY"}]
         if cross == "bearish":
