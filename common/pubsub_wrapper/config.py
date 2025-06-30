@@ -12,6 +12,7 @@ def load_config(env="devtest", prefix="/stockapp"):
         "PGPORT",
         "symbols",
         "TA",
+        "STRATEGIES",
         "container_registry",
         "redis_url",
     ]

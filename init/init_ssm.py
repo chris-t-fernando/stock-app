@@ -19,6 +19,15 @@ DEFAULT_CONFIG = {
         ("ACN", "1h"),
     ],
     "TA": ["macd", "rsi", "sma", "bollingerbands", "obv"],
+    "STRATEGIES": [
+        "trend_follow_confirmation",
+        "rsi_pullback",
+        "macd_rsi",
+        "bollinger_momentum",
+        "triple_confirmation",
+        "adx_macd",
+        "golden_cross",
+    ],
     # Registry that hosts our container images for k3s
     "container_registry": "k3sn1:32000",
     # Redis connection URL used by services

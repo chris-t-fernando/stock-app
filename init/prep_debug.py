@@ -153,6 +153,29 @@ def deploy_put(image: str, cfg):
     subprocess.run(["kubectl", "get", "pods"], check=True)
 
 
+def deploy_strategy(image: str, cfg):
+    env = os.getenv("STOCKAPP_ENV", "devtest")
+    strategies = cfg.get("STRATEGIES", [])
+
+    values = {
+        "image": image,
+        "strategies": strategies,
+        "replicas": 1,
+        "env": env,
+    }
+
+    values_path = Path(__file__).resolve().parent / "strategy_values.yaml"
+    with values_path.open("w") as f:
+        yaml.safe_dump(values, f)
+
+    chart_dir = Path(__file__).resolve().parents[1] / "services/strategy/helm"
+    helm_upgrade_install("strategy-services", chart_dir, values_path)
+
+    rollout_restart([f"strategy-service-{s.lower().replace('_','-')}" for s in strategies])
+
+    subprocess.run(["kubectl", "get", "pods"], check=True)
+
+
 def main():
     import argparse
 
@@ -168,6 +191,9 @@ def main():
 
     image, cfg = build_image(env, "put-service", "services/put/Dockerfile")
     deploy_put(image, cfg)
+
+    image, cfg = build_image(env, "strategy-service", "services/strategy/Dockerfile")
+    deploy_strategy(image, cfg)
 
 
 if __name__ == "__main__":

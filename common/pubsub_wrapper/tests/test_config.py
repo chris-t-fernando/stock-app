@@ -13,6 +13,7 @@ def test_load_config_parses_values():
         '/stockapp/devtest/PGPORT': '5432',
         '/stockapp/devtest/symbols': json.dumps([['AAPL', '1d']]),
         '/stockapp/devtest/TA': json.dumps(['macd']),
+        '/stockapp/devtest/STRATEGIES': json.dumps(['macd_rsi']),
         '/stockapp/devtest/container_registry': 'reg',
         '/stockapp/devtest/redis_url': 'redis://localhost:6379',
     }
@@ -33,5 +34,6 @@ def test_load_config_parses_values():
     assert cfg['PGPORT'] == 5432
     assert cfg['symbols'] == [['AAPL', '1d']]
     assert cfg['TA'] == ['macd']
+    assert cfg['STRATEGIES'] == ['macd_rsi']
     assert cfg['container_registry'] == 'reg'
     assert cfg['redis_url'] == 'redis://localhost:6379'
