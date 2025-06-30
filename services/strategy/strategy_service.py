@@ -96,6 +96,8 @@ class TrendFollowConfirmation(BaseStrategy):
             return []
         price = df["close"].iloc[-1]
         sma = df["close"].rolling(50).mean().iloc[-1]
+        if pd.isna(sma):
+            return []
         macd = fetch_latest("stock_ta_macd", ticker, interval)
         if not macd:
             return []
@@ -119,6 +121,8 @@ class RSIPullback(BaseStrategy):
             return []
         price = df["close"].iloc[-1]
         sma200 = df["close"].rolling(200).mean().iloc[-1]
+        if pd.isna(sma200):
+            return []
         rsi = fetch_latest("stock_ta_rsi", ticker, interval)
         if not rsi:
             return []
@@ -191,6 +195,8 @@ class TripleConfirmation(BaseStrategy):
         sma50 = df["close"].rolling(50).mean().iloc[-1]
         recent_high = df["high"].rolling(20).max().iloc[-1]
         recent_low = df["low"].rolling(20).min().iloc[-1]
+        if pd.isna(sma50) or pd.isna(recent_high) or pd.isna(recent_low):
+            return []
         rsi_val = rsi.get("rsi")
         bb_upper = bb.get("bb_upper")
         bb_lower = bb.get("bb_lower")
@@ -243,6 +249,8 @@ class GoldenCross(BaseStrategy):
             return []
         ma50 = df["close"].rolling(50).mean()
         ma200 = df["close"].rolling(200).mean()
+        if pd.isna(ma50.iloc[-1]) or pd.isna(ma50.iloc[-2]) or pd.isna(ma200.iloc[-1]) or pd.isna(ma200.iloc[-2]):
+            return []
         if ma50.iloc[-1] > ma200.iloc[-1] and ma50.iloc[-2] <= ma200.iloc[-2]:
             return [{"ticker": ticker, "interval": interval, "action": "BUY"}]
         if ma50.iloc[-1] < ma200.iloc[-1] and ma50.iloc[-2] >= ma200.iloc[-2]:
