@@ -2,8 +2,12 @@
 import boto3
 import os
 import psycopg2
+import logging
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from pubsub_wrapper import load_config
+from pubsub_wrapper import load_config, configure_json_logger
+
+configure_json_logger()
+logger = logging.getLogger(__name__)
 
 ENV = os.getenv("STOCKAPP_ENV", "devtest")
 config = load_config(ENV)
@@ -34,7 +38,7 @@ def ensure_database_exists():
     cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (DB_CONFIG["dbname"],))
     exists = cur.fetchone()
     if not exists:
-        print(f"Creating database {DB_CONFIG['dbname']}...")
+        logger.info(f"Creating database {DB_CONFIG['dbname']}...")
         cur.execute(f"CREATE DATABASE {DB_CONFIG['dbname']};")
     cur.close()
     conn.close()
@@ -67,7 +71,7 @@ def init_schema():
     conn.commit()
     cur.close()
     conn.close()
-    print("TimescaleDB schema initialised with compression.")
+    logger.info("TimescaleDB schema initialised with compression.")
 
 if __name__ == "__main__":
     ensure_database_exists()

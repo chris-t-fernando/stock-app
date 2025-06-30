@@ -4,7 +4,11 @@ import subprocess
 from pathlib import Path
 import psycopg2
 import yaml
-from pubsub_wrapper import load_config
+import logging
+from pubsub_wrapper import load_config, configure_json_logger
+
+configure_json_logger()
+logger = logging.getLogger(__name__)
 
 
 def docker_build(image: str, dockerfile: str, context: str = "."):
@@ -91,7 +95,7 @@ def clean_database(env: str):
             deleted_macd = delete_recent_rows(
                 conn, "stock_ta_macd", ticker, interval, n
             )
-            print(
+            logger.info(
                 f"Deleted {deleted_ohlcv} ohlcv and {deleted_macd} macd rows for {ticker} ({interval})"
             )
         conn.commit()

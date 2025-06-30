@@ -8,7 +8,7 @@ from typing import List, Optional, Dict
 import pandas as pd
 import psycopg2
 
-from pubsub_wrapper import PubSubClient, load_config
+from pubsub_wrapper import PubSubClient, load_config, configure_json_logger
 
 try:  # optional dependency for ADX calculation
     import talib  # type: ignore
@@ -17,7 +17,7 @@ except Exception:  # pragma: no cover
 
     talib = SimpleNamespace()
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+configure_json_logger()
 logger = logging.getLogger(__name__)
 
 ENV = os.getenv("STOCKAPP_ENV", "devtest")

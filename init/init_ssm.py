@@ -1,6 +1,11 @@
 import boto3
 import os
 import json
+import logging
+from pubsub_wrapper import configure_json_logger
+
+configure_json_logger()
+logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIG = {
     "PGHOST": "k3sn1",
@@ -60,14 +65,14 @@ def put_parameters(env="devtest", prefix="/stockapp", region="ap-southeast-2"):
 
     for key, value in DEFAULT_CONFIG.items():
         param_path = f"{prefix}/{env}/{key}"
-        print(f"Setting {param_path}...")
+        logger.info(f"Setting {param_path}...")
         ssm.put_parameter(
             Name=param_path,
             Value=json.dumps(value),
             Type="SecureString" if "PASSWORD" in key else "String",
             Overwrite=True,
         )
-    print("✅ SSM parameters bootstrapped.")
+    logger.info("SSM parameters bootstrapped")
 
 
 if __name__ == "__main__":
