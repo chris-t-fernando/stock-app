@@ -292,14 +292,26 @@ def run():
         interval = payload.get("interval")
         if not ticker or not interval:
             continue
+        indicator = payload.get("indicator")
         signals = strategy.evaluate(ticker, interval)
+        latest_ohlcv = {}
+        if signals:
+            ohlcv_df = fetch_recent_ohlcv(ticker, interval, limit=1)
+            latest_ohlcv = (
+                ohlcv_df.iloc[-1].to_dict() if not ohlcv_df.empty else {}
+            )
         for sig in signals:
+            event_payload = {
+                **sig,
+                "indicator": indicator,
+                "ohlcv": latest_ohlcv,
+            }
             bus.publish(
                 "strategy.signal",
                 f"strategy.signal.{sig['action'].lower()}",
-                sig,
+                event_payload,
             )
-            logger.info(f"Published signal {sig}")
+            logger.info(f"Published signal {event_payload}")
 
 
 if __name__ == "__main__":
