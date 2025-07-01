@@ -28,8 +28,12 @@ class BaseTAAlgorithm:
             return 0
         last_ts = self.get_latest_ts(ticker, interval)
         df = self.calculate(price_df)
+        if df is None or df.empty or "ts" not in df.columns:
+            return 0
         if last_ts:
             df = df[df["ts"] > last_ts]
+        if df.empty:
+            return 0
         return self.insert_records(ticker, interval, df)
 
     def calculate(self, df: pd.DataFrame) -> pd.DataFrame:

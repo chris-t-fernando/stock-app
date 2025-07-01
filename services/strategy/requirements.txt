@@ -3,3 +3,4 @@ yfinance
 boto3
 psycopg2-binary
 pandas
+TA-Lib

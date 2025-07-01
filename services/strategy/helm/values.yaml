@@ -1,0 +1,4 @@
+image: strategy-service:latest
+strategies: []
+replicas: 1
+env: devtest

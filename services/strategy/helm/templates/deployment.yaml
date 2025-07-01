@@ -1,0 +1,39 @@
+{{- range $strat := .Values.strategies }}
+{{- $safe := $strat | lower | replace "_" "-" | trimAll "-" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: strategy-service-{{ $safe }}
+  labels:
+    app: strategy-service-{{ $safe }}
+spec:
+  replicas: {{ $.Values.replicas }}
+  selector:
+    matchLabels:
+      app: strategy-service-{{ $safe }}
+  template:
+    metadata:
+      labels:
+        app: strategy-service-{{ $safe }}
+    spec:
+      containers:
+        - name: strategy-service
+          image: {{ $.Values.image }}
+          command: ["python", "strategy_service.py", "-strategy", "{{ $strat }}"]
+          env:
+            - name: STOCKAPP_ENV
+              value: {{ $.Values.env | quote }}
+            - name: STRATEGY_SERVICE_IMAGE
+              value: {{ $.Values.image | quote }}
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: aws_access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: aws_secret_access_key
+---
+{{- end }}

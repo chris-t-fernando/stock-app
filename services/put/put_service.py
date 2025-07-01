@@ -4,7 +4,7 @@ import logging
 import argparse
 import time
 from datetime import datetime, timedelta, timezone
-from pubsub_wrapper import PubSubClient, load_config
+from pubsub_wrapper import PubSubClient, load_config, configure_json_logger
 import yfinance as yf
 import psycopg2
 import pandas as pd
@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Semaphore, Lock
 from collections import deque
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+configure_json_logger()
 logger = logging.getLogger(__name__)
 
 # Silence yfinance internal logging
