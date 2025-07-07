@@ -14,11 +14,15 @@ class PubSubClient:
 
     @staticmethod
     def _json_default(obj: Any):
-        """Helper to make pandas Timestamp and datetimes serialisable."""
+        """Helper used by ``json.dumps`` to serialise additional types."""
         if isinstance(obj, (pd.Timestamp, datetime, date)):
             return obj.isoformat()
+        if isinstance(obj, pd.Timedelta):
+            return obj.to_pytimedelta().total_seconds()
         if hasattr(obj, "tolist"):
             return obj.tolist()
+        if isinstance(obj, set):
+            return list(obj)
         raise TypeError(f"Object of type {type(obj).__name__} is not JSON serialisable")
 
     def publish(self, topic, event_type, payload, metadata=None):
