@@ -1,9 +1,9 @@
 import os
 import logging
-from pubsub_wrapper import PubSubClient, load_config
+from pubsub_wrapper import PubSubClient, load_config, configure_json_logger
 import json
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+configure_json_logger()
 logger = logging.getLogger(__name__)
 
 ENV = os.getenv("STOCKAPP_ENV", "devtest")

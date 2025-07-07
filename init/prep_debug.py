@@ -4,7 +4,11 @@ import subprocess
 from pathlib import Path
 import psycopg2
 import yaml
-from pubsub_wrapper import load_config
+import logging
+from pubsub_wrapper import load_config, configure_json_logger
+
+configure_json_logger()
+logger = logging.getLogger(__name__)
 
 
 def docker_build(image: str, dockerfile: str, context: str = "."):
@@ -91,7 +95,7 @@ def clean_database(env: str):
             deleted_macd = delete_recent_rows(
                 conn, "stock_ta_macd", ticker, interval, n
             )
-            print(
+            logger.info(
                 f"Deleted {deleted_ohlcv} ohlcv and {deleted_macd} macd rows for {ticker} ({interval})"
             )
         conn.commit()
@@ -153,6 +157,29 @@ def deploy_put(image: str, cfg):
     subprocess.run(["kubectl", "get", "pods"], check=True)
 
 
+def deploy_strategy(image: str, cfg):
+    env = os.getenv("STOCKAPP_ENV", "devtest")
+    strategies = cfg.get("STRATEGIES", [])
+
+    values = {
+        "image": image,
+        "strategies": strategies,
+        "replicas": 1,
+        "env": env,
+    }
+
+    values_path = Path(__file__).resolve().parent / "strategy_values.yaml"
+    with values_path.open("w") as f:
+        yaml.safe_dump(values, f)
+
+    chart_dir = Path(__file__).resolve().parents[1] / "services/strategy/helm"
+    helm_upgrade_install("strategy-services", chart_dir, values_path)
+
+    rollout_restart([f"strategy-service-{s.lower().replace('_','-')}" for s in strategies])
+
+    subprocess.run(["kubectl", "get", "pods"], check=True)
+
+
 def main():
     import argparse
 
@@ -168,6 +195,9 @@ def main():
 
     image, cfg = build_image(env, "put-service", "services/put/Dockerfile")
     deploy_put(image, cfg)
+
+    image, cfg = build_image(env, "strategy-service", "services/strategy/Dockerfile")
+    deploy_strategy(image, cfg)
 
 
 if __name__ == "__main__":
